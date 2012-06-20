@@ -14,29 +14,43 @@
 # revisions scripts may override package scripts
 
 # variables
-TST_NAME=
-TST_PKG=peg-multimarkdown
-TST_PKG_CATEGORY=app-text
-TST_NAME=test-suite-$TST_PKG
-TST_DIR=/tmp/ebuild-tests/$TST_NAME
-TST_FILES=
+TST_NAME=`basename $0`
+CUR_DIR=`dirname $0`
+TST_DIR="/tmp/$TST_NAME"
+
+TST_PKG=
+TST_PKG_CATEGORY=
 TST_USE=
 TST_USE_ACTIVE=
 
-echo "Work dir is $TST_DIR"
-
-tst_error_exit_hard()
+die()
 {
 	echo "$1" 1>&2
 	exit 1
 }
 
-tst_error_exit()
+die_error()
 {
 	tst_cleanup
 	tst_error_exit_hard "$1"
 }
 
+# cleans an installation
+init()
+{
+	echo "Work dir is $TST_DIR"
+	[ ! -e $TST_DIR ] || die "$TST_DIR exists!"
+	mkdir -p $TST_DIR
+	echo "Created work dir"
+	cd $TST_DIR || die_error "cd failed"
+	# clean all existing installations
+	for cat in `ls $CUR_DIR/tests/`; do
+		[ -d $CUR_DIR/tests/$cat ] || die "Unexpected file in $CUR_DIR/tests/$cat"
+		for pkg in `ls $CUR_DIR/tests/$cat`; do
+			# all folders are treated as revisions
+			# [ -d $CUR_DIR/tests/$cat ] || die "Unexpected file in $CUR_DIR/tests/$cat"
+	done
+}
 # fill list of USE flags
 tst_init_use()
 {
@@ -63,7 +77,6 @@ tst_use_uses()
 # clean up everything
 tst_cleanup()
 {
-	cd $TST_DIR || tst_error_exit_hard "cd failed"
 	rm $TST_FILES || tst_error_exit_hard  "rm failed"
 	cd ..
 	rmdir $TST_DIR || tst_error_exit _hard "rmdir failed"
@@ -78,27 +91,12 @@ tst_clean()
 
 tst_prepare()
 {
-	if [ -e $TST_DIR ]; then
-		tst_error_exit_hard "$TST_DIR exists!"
-	else
-		# call init functions
-		tst_init_use
-		tst_init_use_active
-		mkdir -p $TST_DIR
-		echo "Created work dir"
-		cd $TST_DIR || tst_error_exit "cd failed"
-		# pkg specific prepare
-		# grab some test files
-		pkg_prepare
-	fi
+	
 }
 
-tst_test_atom()
+tst_run()
 {
-	echo "Running test atom: $1"
-	# stdout is suppressed
-	# TODO: write logs
-	$1 1>/dev/null || tst_error_exit "Test atom failed: $1"
+
 }
 
 tst_test()
