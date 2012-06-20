@@ -35,7 +35,12 @@ die_error()
 	tst_error_exit_hard "$1"
 }
 
-# cleans an installation
+clean_pkg()
+{
+	# comment out in package.use
+	
+}
+# cleans all installations
 init()
 {
 	echo "Work dir is $TST_DIR"
