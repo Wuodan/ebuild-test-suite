@@ -95,7 +95,7 @@ test_atom()
 	echo "Running test atom: $1"
 	# stdout is suppressed
 	# TODO: write logs
-	$1 1>/dev/null || error "Test atom failed: $1"
+	# $1 1>/dev/null || error "Test atom failed: $1"
 }
 
 test()
@@ -107,7 +107,7 @@ test()
 	# use flag tests
 	for uflag in $USE_ACTIVE; do
 		# exclude test flag
-		if "$flag" != 'test'; then
+		if [ "$flag" != 'test' ]; then
 			type  pkg_test_$uflag &>/dev/null || error "Function pkg_test_$uflag not found!"
 			pkg_test_$uflag || error "pkg_test_$uflag failed!"
 			clean || error "pkg_clean failed!"
