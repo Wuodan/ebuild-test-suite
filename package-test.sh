@@ -106,9 +106,12 @@ test()
 	clean || error "pkg_clean failed!"
 	# use flag tests
 	for uflag in $USE_ACTIVE; do
-		type  pkg_test_$uflag &>/dev/null || error "Function pkg_test_$uflag not found!"
-		pkg_test_$uflag || error "pkg_test_$uflag failed!"
-		clean || error "pkg_clean failed!"
+		# exclude test flag
+		if "$flag" != 'test'; then
+			type  pkg_test_$uflag &>/dev/null || error "Function pkg_test_$uflag not found!"
+			pkg_test_$uflag || error "pkg_test_$uflag failed!"
+			clean || error "pkg_clean failed!"
+		fi
 	done
 
 }

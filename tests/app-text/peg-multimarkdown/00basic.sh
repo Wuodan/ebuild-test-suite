@@ -78,3 +78,16 @@ pkg_test_doc()
 		return 0
 	fi
 }
+
+# run test for use flag "doc"
+pkg_test_latex()
+{
+	# all is done by the sub-package
+	# which is installed first, so we can test here
+	# count 28 *.tex files
+	if [ `ls -1 /usr/share/texmf/tex/latex/peg-multimarkdown-latex-support/*.tex | wc -l` -ne 28 ]; then
+		return 1
+	else
+		return 0
+	fi
+}
