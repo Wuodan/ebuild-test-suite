@@ -96,9 +96,6 @@ test_atom()
 	# stdout is suppressed
 	# TODO: write logs
 	$1 1>/dev/null || error "Test atom failed: $1"
-	if [ $? -ne 0 ]; then
-		error "Test atom failed: $1"
-	fi
 }
 
 test()
