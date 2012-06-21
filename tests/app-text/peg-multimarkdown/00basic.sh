@@ -6,34 +6,75 @@
 # variables
 
 # get pkg specific test files
-pkg_prepare()
+pkg_init()
 {
 	# grab some test files
 	wget --quiet http://fletcherpenney.net/multimarkdown/index.txt
-	mv index.txt fIndex.txt || tst_error_exit "mv failed"
+	mv index.txt fIndex.txt || error "mv failed"
 	wget --quiet http://daringfireball.net/projects/markdown/index.text
-	mv index.text dfbIndex.txt || tst_error_exit "mv failed"
+	mv index.text dfbIndex.txt || error "mv failed"
 	wget --quiet http://daringfireball.net/projects/markdown/syntax.text
-	mv syntax.text dfbSyntax.txt || tst_error_exit "mv failed"
-	# read list of test files
-	TST_FILES=`ls .`
+	mv syntax.text dfbSyntax.txt || error "mv failed"
 }
 
 # run basic test for pkg
 pkg_test()
 {
-	local tPrg=multimarkdown
+	local prg=multimarkdown
 	# basic installation
-	tst_test_atom "$tPrg -v"
-	tst_test_atom "$tPrg -h"
+	test_atom "$prg -v"
+	test_atom "$prg -h"
 	local formats='html latex memoir beamer odf opml'
 	for format in $formats; do
 		# single files
-		for file in $TST_FILES; do
-			tst_test_atom "$tPrg -b -t $format $file"
+		for file in $FILES; do
+			test_atom "$prg -b -t $format $file"
 		done
-		tst_clean
+		clean
 		# multiple files
-		tst_test_atom "$tPrg -b -t $format `echo $TST_FILES`"
+		test_atom "$prg -b -t $format `echo $FILES`"
 	done
+}
+
+# run test for use flag "shortcuts"
+pkg_test_shortcuts()
+{
+	local prgList='mmd2tex mmd2opml mmd2odf'
+	# loop shortcuts
+	for prg in $prgList; do
+		# single files
+		for file in $FILES; do
+			test_atom "$prg $file"
+		done
+		clean
+		# multiple files
+		test_atom "$prg `echo $FILES`"
+	done
+}
+
+# run test for use flag "perl-conversions"
+pkg_test_perl-conversions()
+{
+	local prgList='mmd2XHTML.pl mmd2LaTeX.pl mmd2OPML.pl mmd2ODF.pl table_cleanup.pl mmd_merge.pl'
+	# loop shortcuts
+	for prg in $prgList; do
+		# single files
+		for file in $FILES; do
+			test_atom "$prg $file"
+		done
+		clean
+		# multiple files
+		test_atom "$prg `echo $FILES`"
+	done
+}
+
+# run test for use flag "doc"
+pkg_test_doc()
+{
+	# check for html doc file
+	if [ ! -f /usr/share/doc/peg-multimarkdown-9999/html/index.html ]; then
+		return 1
+	else
+		return 0
+	fi
 }

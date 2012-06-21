@@ -23,23 +23,24 @@ TST_PKG_CATEGORY=
 TST_USE=
 TST_USE_ACTIVE=
 
-die()
-{
-	echo "$1" 1>&2
-	exit 1
-}
 
-die_error()
+error()
 {
-	tst_cleanup
-	tst_error_exit_hard "$1"
+	cleanup
+	die "$1"
 }
 
 clean_pkg()
 {
-	# comment out in package.use
-	
+	local cat=$1
+	local pkg=$2
+	# comment out in package.use and package.accept_keywords
+	sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.use
+	sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.accept_keywords
+	# depclean the package
+	emerge --depclean -pv $cat/$pkg
 }
+
 # cleans all installations
 init()
 {
@@ -54,6 +55,7 @@ init()
 		for pkg in `ls $CUR_DIR/tests/$cat`; do
 			# all folders are treated as revisions
 			# [ -d $CUR_DIR/tests/$cat ] || die "Unexpected file in $CUR_DIR/tests/$cat"
+		done
 	done
 }
 # fill list of USE flags
