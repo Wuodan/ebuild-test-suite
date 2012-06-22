@@ -1,124 +1,103 @@
 #!/bin/bash
 # Author: Stefan Kuhn <woudan@hispeed.ch>
 
+# source for common functions
+source bin/common.sh
+
 # run tests based on scripts in ./tests folder
 # 
-# packages and revisions to test are determined by folder structure in ./tests folder
+# packages and versions to test are determined by folder structure in ./tests folder
 # Example: ./tests/dev-util/ctags/6.3-r1/
-# => all revision 6.3-r1 of dev-util/ctags
+# => all version 6.3-r1 of dev-util/ctags
 # Example: ./tests/dev-util/ctags without subfolders
-# => all available revisions for dev-util/ctags
+# => all available versions for dev-util/ctags
 #
-# scripts in ./tests/dev-util/ctags/ are included for all tested revisions
-# scripts in ./tests/dev-util/ctags/6.3-r1/ only for that revision
-# revisions scripts may override package scripts
+# scripts in ./tests/dev-util/ctags/ are included for all tested versions
+# scripts in ./tests/dev-util/ctags/6.3-r1/ only for that version
+# versions scripts may override package scripts
 
 # variables
-TST_NAME=`basename $0`
-CUR_DIR=`dirname $0`
-TST_DIR="/tmp/$TST_NAME"
+ROOT=$(dirname `readlink -f $0`)/tests
+ALL_PKG=
+VERSIONS=
 
-TST_PKG=
-TST_PKG_CATEGORY=
-TST_USE=
-TST_USE_ACTIVE=
+# check if run as root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
 
-
-error()
+comment_pkg()
 {
-	cleanup
-	die "$1"
-}
-
-clean_pkg()
-{
+	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
 	local cat=$1
 	local pkg=$2
 	# comment out in package.use and package.accept_keywords
 	sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.use
-	sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.accept_keywords
-	# depclean the package
-	emerge --depclean -pv $cat/$pkg
+	# TODO: take care of pkg.accept_keywords.
+	# Must be done manually for all versions at the moment
+	# sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.accept_keywords
 }
 
-# cleans all installations
+# cleans all installations of tested packages
 init()
 {
-	echo "Work dir is $TST_DIR"
-	[ ! -e $TST_DIR ] || die "$TST_DIR exists!"
-	mkdir -p $TST_DIR
-	echo "Created work dir"
-	cd $TST_DIR || die_error "cd failed"
 	# clean all existing installations
-	for cat in `ls $CUR_DIR/tests/`; do
-		[ -d $CUR_DIR/tests/$cat ] || die "Unexpected file in $CUR_DIR/tests/$cat"
-		for pkg in `ls $CUR_DIR/tests/$cat`; do
-			# all folders are treated as revisions
-			# [ -d $CUR_DIR/tests/$cat ] || die "Unexpected file in $CUR_DIR/tests/$cat"
+	for cat in `ls $ROOT/`; do
+		[ -d $ROOT/$cat ] || die "Unexpected file in $ROOT/$cat"
+		for pkg in `ls $ROOT/$cat`; do
+			ALL_PKG+=" $cat/$pkg"
+			comment_pkg $cat $pkg
 		done
 	done
-}
-# fill list of USE flags
-tst_init_use()
-{
-	TST_USE=`equery --quiet uses $TST_PKG_CATEGORY/$TST_PKG | cut -b 2- | tr '\n' ' '` || tst_error_exit_hard "equery uses $TST_PKG_CATEGORY/$TST_PKG failed!"
+	# depclean all packages
+	emerge --depclean -v ${ALL_PKG} || die "initial depclean failed"
 }
 
-# fill list of active USE flags
-tst_init_use_active()
+# get all versions & versions of a pkg
+# TODO: better parse function
+# too much black magic in here
+get_pkg_versions()
 {
-	TST_USE_ACTIVE=`equery --quiet uses $TST_PKG_CATEGORY/$TST_PKG | grep '^\+' | cut -b 2- | tr '\n' ' '` || tst_error_exit_hard "equery uses $TST_PKG_CATEGORY/$TST_PKG failed!"
+	[ "$1" != '' ] || die "Missing input"
+	# parse from eix output 
+	local vers=`eix -l -x -Ae "$catpkg" || die "Shouldn't happen"`
+	# eeek, black magic
+	# result are versions, optionally prepended by "~"
+	vers=`echo "$vers" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
+	# echo "$vers"
+	vers=`echo "$vers" | sed -r 's/\s*\(?(~)?\)?\s+(\S+)\s.*/\1\2/'`
+	# echo "$vers"
+	vers=`echo "$vers" | sed -r 's/(~)?([^9]+)\s/\1\2/'`
+	[ "$vers" != '' ] || die "Parsing of versions failed!"
+	VERSIONS=$vers
 }
 
-# test if use flag is active
-tst_use_uses()
+filter_versions()
 {
-	local use=`equery --quiet uses $TST_PKG_CATEGORY/$TST_PKG | grep -e "^\+$1$"` || tst_error_exit_hard "equery uses $TST_PKG_CATEGORY/$TST_PKG failed!"
-	if [ $use ]; then
-		return 0
-	else
-		return 1
-	fi
-}
-
-# clean up everything
-tst_cleanup()
-{
-	rm $TST_FILES || tst_error_exit_hard  "rm failed"
-	cd ..
-	rmdir $TST_DIR || tst_error_exit _hard "rmdir failed"
-}
-
-# clean up after a test, preserve files in $TST_FILES
-tst_clean()
-{
-	local files=`ls -1 $TSTDIR | grep -vF -e "$TST_FILES"`
-	rm $files || tst_error_exit_hard "rm files failed"
-}
-
-tst_prepare()
-{
-	
-}
-
-tst_run()
-{
-
-}
-
-tst_test()
-{
-	# basic test
-	pkg_test || tst_error_exit "pkg_test failed!"
-	tst_clean || tst_error_exit "pkg_clean failed!"
-	# use flag tests
-	for uflag in $TST_USE_ACTIVE; do
-		pgk_test_$uflag || tst_error_exit "pkg_test_$uflag failed!"
-		tst_clean || tst_error_exit "pkg_clean failed!"
+	[ "$1" != '' ] || die "Missing input"
+	echo $1
+	echo '---'
+	local vers=
+	for v in $1; do
+		vers+=`echo ": $VERSIONS :" | sed -r "s/.*(~?$v)/ \1/"`
 	done
-
+	echo $vers
 }
 
-tst_prepare
-tst_test
-tst_cleanup
+run(){
+	# loop over all packages
+	for catpkg in $ALL_PKG; do
+		# load all versions
+		get_pkg_versions $catpkg
+		# version folders present, otherwise use all available versions
+		# all subfolders of ./tests/cat/pkg/ are treated as versions
+		if [ "`ls -d $ROOT/$catpkg/*`" != '' ]; then
+			# filter by comparing lists
+			filter_versions `ls -d $ROOT/$catpkg/*/ | xargs -l basename | tr '\n' ' '`
+		fi
+	done 
+}
+
+init
+run

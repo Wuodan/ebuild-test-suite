@@ -10,14 +10,10 @@ die()
 }
 
 # fill list of USE flags
+# fill list of active USE flags
 init_use()
 {
 	USE=`equery --quiet uses $CAT/$PKG | cut -b 2- | tr '\n' ' '` || die "equery uses $CAT/$PKG failed!"
-}
-
-# fill list of active USE flags
-init_use_active()
-{
 	USE_ACTIVE=`equery --quiet uses $CAT/$PKG | grep '^\+' | cut -b 2- | tr '\n' ' '` || die "equery uses $CAT/$PKG failed!"
 }
 

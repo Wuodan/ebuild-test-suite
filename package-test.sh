@@ -11,7 +11,10 @@ ROOT=$(dirname `readlink -f $0`)/tests
 CAT=$1
 PKG=$2
 PVR=$3
-DIR=/tmp/ebuild-test-suite/$NAME
+DIR=/tmp/ebuild-test-suite/$CAT/$PKG
+if [ "$PVR" != '' ]; then
+	DIR=$DIR-$PVR
+fi
 FILES=
 USE_ACTIVE=
 
@@ -72,7 +75,6 @@ init()
 	else
 		# call init functions
 		init_use
-		init_use_active
 		mkdir -p $DIR || die "mkdir failed"
 		echo "Created work dir"
 		cd $DIR || die "cd failed"
