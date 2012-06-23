@@ -1,6 +1,8 @@
 #!/bin/bash
 # Author: Stefan Kuhn <woudan@hispeed.ch>
 
+# requires: sys-devel/bc
+
 # source for common functions
 source bin/common.sh
 
@@ -20,6 +22,7 @@ source bin/common.sh
 ROOT=$(dirname `readlink -f $0`)/tests
 ALL_PKG=
 VERSIONS=
+FLAGS=
 
 # check if run as root
 if [[ $EUID -ne 0 ]]; then
@@ -57,45 +60,100 @@ init()
 # get all versions & versions of a pkg
 # TODO: better parse function
 # too much black magic in here
-get_pkg_versions()
+load_pkg_versions()
 {
 	[ "$1" != '' ] || die "Missing input"
-	# parse from eix output 
-	local vers=`eix -l -x -Ae "$catpkg" || die "Shouldn't happen"`
+	local catpkg=$1
+	# version folders present, otherwise use all available versions
+	# all subfolders of ./tests/cat/pkg/ are treated as versions
+	if [ "`find $ROOT/$catpkg/ -maxdepth 1 -mindepth 1 -type d -printf %P\\n`" != '' ]; then
+		VERSIONS=`ls -d $ROOT/$catpkg/* | xargs -l basename | tr '\n' ' '`
+	# no version folder, load all versions
+	else
+		# parse from eix output 
+		local eix=`eix -l -x -Ae "$catpkg" || die "Shouldn't happen"`
+		# eeek, black magic
+		# result are versions
+		eix=`echo "$eix" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
+		eix=`echo "$eix" | sed -r 's/\s*\(?(~)?\)?\s+(\S+)\s.*/\2/'`
+		eix=`echo "$eix" | sed -r 's/([^9]+)\s/\1/'`
+		[ "$eix" != '' ] || die "Parsing of versions failed!"
+		VERSIONS=$eix
+	fi
+}
+
+# load use flags
+load_version_use()
+{
+	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
+	local catpkg=$1
+	local vers=$2
+	local eix=`eix -l -x -Ae "$catpkg" || die "Shouldn't happen"`
 	# eeek, black magic
-	# result are versions, optionally prepended by "~"
-	vers=`echo "$vers" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
-	# echo "$vers"
-	vers=`echo "$vers" | sed -r 's/\s*\(?(~)?\)?\s+(\S+)\s.*/\1\2/'`
-	# echo "$vers"
-	vers=`echo "$vers" | sed -r 's/(~)?([^9]+)\s/\1\2/'`
-	[ "$vers" != '' ] || die "Parsing of versions failed!"
-	VERSIONS=$vers
+	eix=`echo "$eix" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
+	# escape string
+	local versEsc="`echo "$vers" | sed -E 's/[^[:alnum:]_-]/\\\\\0/g'`" # why this needs so many \\\ i dunno!?!
+	eix="`echo "$eix" | grep -r "[[:space:]]$versEsc[[:space:]]"`"
+	# no flags
+	if [ "`echo "$eix" | sed -n '/\[/p'`" == '' ]; then
+		FLAGS=''
+	# parse flags
+	else
+		FLAGS=`echo "$eix" | sed -r "s/.*\[(.+)\].*/\1/"`
+	fi
+	# echo "flags for $catpkg $vers:"
+	# echo $FLAGS
 }
 
-filter_versions()
+# install a given package version with given use flag combination
+run_version_withflags()
 {
-	[ "$1" != '' ] || die "Missing input"
-	echo $1
-	echo '---'
-	local vers=
-	for v in $1; do
-		vers+=`echo ": $VERSIONS :" | sed -r "s/.*(~?$v)/ \1/"`
-	done
-	echo $vers
+	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
+	local catpkg=$1
+	local vers=$2
+	local runflags=$3
 }
 
+# loop over all possible use flag combinatios
+# for a given package version
+run_version()
+{
+	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
+	local catpkg=$1
+	local vers=$2
+	# skip test flag
+	local useflags=`echo "$FLAGS" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
+	echo "flags for $catpkg $vers:"
+	echo "$useflags"
+	# loop over all possible combinations of use-flags (2^n -1)
+	local i=0
+	local listlen=`echo "$useflags" | wc -w`
+	while [ $i -lt `echo "2^$listlen" | bc` ]; do
+		local runflags=
+		local j=0
+		for flag in $useflags; do
+			runflags+=" "
+			if [ $(($i & `echo "2^$j" | bc` )) -eq 0 ]; then
+				runflags+="-"
+			fi
+			runflags+="$flag"
+			j=$(($j + 1))
+		done
+		i=`echo "$i+1" | bc`
+		echo "$runflags"
+	done
+}
+
+# loop over all packages
+# plus loop over all versions
 run(){
 	# loop over all packages
 	for catpkg in $ALL_PKG; do
-		# load all versions
-		get_pkg_versions $catpkg
-		# version folders present, otherwise use all available versions
-		# all subfolders of ./tests/cat/pkg/ are treated as versions
-		if [ "`ls -d $ROOT/$catpkg/*`" != '' ]; then
-			# filter by comparing lists
-			filter_versions `ls -d $ROOT/$catpkg/*/ | xargs -l basename | tr '\n' ' '`
-		fi
+		load_pkg_versions $catpkg
+		for ver in $VERSIONS; do
+			load_version_use $catpkg $ver
+			run_version $catpkg $ver
+		done
 	done 
 }
 
