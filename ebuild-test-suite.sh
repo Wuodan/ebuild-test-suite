@@ -40,10 +40,10 @@ init()
 		done
 	done
 	# depclean all packages
-	emerge --depclean -v ${ALL_PKG} || die "initial depclean failed"
+	emerge -q --depclean -v ${ALL_PKG} || die "initial depclean failed"
 	# depclean system
-	emerge -v --depclean || die "initial depclean system failed"
-	revdep-rebuild || die "initial revdep-rebuild failed"
+	emerge -q --depclean || die "initial depclean system failed"
+	revdep-rebuild -q || die "initial revdep-rebuild failed"
 }
 
 # install a pkg version with given use flags
@@ -56,18 +56,24 @@ install_pkg(){
 	# set in package.use
 	# only insert when use flags are not empty
 	if [ "$runflags" != '' ];then
-		$subscript insert $catpkg $vers $runflags || die "Failure in: $subscript insert $catpkg $vers $runflags"
+		$subscript insert $catpkg $vers "$runflags" || die "Failure in: $subscript insert $catpkg $vers '$runflags'"
 	fi
+	echo '**************************'
+	echo "Emerging $catpkg with flags [$runflags]"
+	echo '**************************'
 	# emerge package-version
 	emerge -v =$catpkg-$vers
-
-	exit 1
-
+	# run tests for current installation
+	$ROOT/../package-test.sh $catpkg $vers || die "Test failed for: $ROOT/../package-test.sh $catpkg $vers"
 	# depclean the package
-	emerge --depclean -v =$catpkg-$vers || die "depclean failed"
+	# emerge --depclean -v =$catpkg-$vers || die "depclean failed"
+	# TODO: the above fails with my ebuild
+	# either I get the DEPEND/RDEPEND wrong or it is as it is
+	# workaround: depclean all tested packages
+	emerge -q --depclean ${ALL_PKG}
 	# depclean system
-	emerge -v --depclean || die "depclean system failed"
-	revdep-rebuild || die "revdep-rebuild failed"
+	emerge  -q --depclean || die "depclean system failed"
+	revdep-rebuild -q || die "revdep-rebuild failed"
 }
 
 # loop over all possible use flag combinatios
@@ -81,8 +87,8 @@ run_version()
 	local useflags=`$subscript useflags $catpkg $ver || die "Failure in: $subscript useflags $catpkg $ver"`
 	# skip test flag
 	local useflags=`echo "$useflags" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
-	echo "flags for $catpkg $vers:"
-	echo "$useflags"
+	# echo "flags for $catpkg $vers:"
+	# echo "$useflags"
 	# loop over all possible combinations of use-flags (2^n -1)
 	local i=0
 	local listlen=`echo "$useflags" | wc -w`
@@ -97,10 +103,8 @@ run_version()
 			runflags+="$flag"
 			j=$(($j + 1))
 		done
-		i=`echo "$i+1" | bc`
-		echo "$runflags"
-
 		install_pkg "$catpkg" "$vers" "$runflags"
+		i=`echo "$i+1" | bc`
 	done
 }
 

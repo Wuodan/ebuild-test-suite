@@ -3,33 +3,30 @@
 
 # test an installated package
 
+ROOT=$(dirname `readlink -f $0`)/tests
+
 # source for common functions
-source bin/common.sh
+source $ROOT/../bin/common.sh
 
 # variables
-ROOT=$(dirname `readlink -f $0`)/tests
-CAT=$1
-PKG=$2
-PVR=$3
-DIR=/tmp/ebuild-test-suite/$CAT/$PKG
+CATPKG=$1
+PVR=$2
+DIR=/tmp/ebuild-test-suite/$CATPKG
 if [ "$PVR" != '' ]; then
 	DIR=$DIR-$PVR
 fi
 FILES=
-USE_ACTIVE=
 
 # sanity check
-if [ "$CAT" == '' ] || [ "$PKG" == '' ]; then
+if [ "$CATPKG" == '' ]; then
 	die "Missing package or category!"
 fi
-if [ ! -d "$ROOT/$CAT/$PKG" ]; then 
-	die "$ROOT/$CAT/$PKG is not a directory!"
+if [ ! -d "$ROOT/$CATPKG" ]; then 
+	die "$ROOT/$CATPKG is not a directory!"
 fi
-if [ "$PVR" != '' ] && [ ! -d "$ROOT/$CAT/$PKG" ]; then
-	die "$ROOT/$CAT/$PKG/$PVR is not a directory!"
+if [ "$PVR" != '' ] && [ ! -d "$ROOT/$CATPKG" ]; then
+	die "$ROOT/$CATPKG/$PVR is not a directory!"
 fi
-
-echo "Work dir is $DIR"
 
 error()
 {
@@ -59,7 +56,6 @@ clean()
 source_scripts_from_folder()
 {
 	local dir=$1
-	ls "$dir"
 	echo "Loading from $dir"
 	for script in `ls $dir`; do
 		if [ -f $dir/$script ]; then
@@ -70,18 +66,18 @@ source_scripts_from_folder()
 
 init()
 {
+	echo "Work dir is $DIR"
 	if [ -e $DIR ]; then
 		die "$DIR exists!"
 	else
 		# call init functions
-		init_use
 		mkdir -p $DIR || die "mkdir failed"
 		echo "Created work dir"
 		cd $DIR || die "cd failed"
 		# source all pkg scripts
-		source_scripts_from_folder $ROOT/$CAT/$PKG
-		if [ "$PVR" != '' ]; then
-			source_scripts_from_folder $ROOT/$CAT/$PKG/$PVR
+		source_scripts_from_folder $ROOT/$CATPKG
+		if [ "$PVR" != '' ] && [ -d $ROOT/$CATPKG/$PVR ]; then
+			source_scripts_from_folder $ROOT/$CATPKG/$PVR
 		fi
 		# pkg specific init
 		# grab some test files
@@ -106,8 +102,10 @@ test()
 	type  pkg_test &>/dev/null || error "Function pkg_test not found!"
 	pkg_test || error "pkg_test failed!"
 	clean || error "pkg_clean failed!"
+	# fill list of active use flags
+	local use_active=`equery --quiet uses $CATPKG | grep '^\+' | cut -b 2- | tr '\n' ' '` || die "equery uses $CATPKG failed!"
 	# use flag tests
-	for uflag in $USE_ACTIVE; do
+	for uflag in $use_active; do
 		# exclude test flag
 		if [ "$flag" != 'test' ]; then
 			type  pkg_test_$uflag &>/dev/null || error "Function pkg_test_$uflag not found!"
