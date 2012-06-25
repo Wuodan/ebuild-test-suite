@@ -30,18 +30,46 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-comment_pkg()
+# package.use: comment a pkg
+pkg_use_comment()
 {
 	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
 	local cat=$1
 	local pkg=$2
-	# comment out in package.use and package.accept_keywords
+	# comment out in package.use
 	sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.use
 	# TODO: take care of pkg.accept_keywords.
 	# Must be done manually for all versions at the moment
 	# sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.accept_keywords
 }
 
+# package.use: define a pkg version with use flags
+# nothing inserted if no use flags must be set
+pkg_use_define()
+{
+	( [ "$1" != '' ] || [ "$2" != '' || [ "$3" != '' ] ) || die "Missing input"
+	local cat=$1
+	local pkg=$2
+	local vers=$3
+	local runflags=$4
+	# only insert when use flags are not empty
+	if [ "$runflags" != '' ];then
+		echo "$cat/$pkg:$vers $runflags" >> /etc/portage/package.use
+	fi
+	exit 1
+}
+
+# package.use: remove a pkg
+pkg_use_remove()
+{
+	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
+	local cat=$1
+	local pkg=$2
+	# remove from package.use
+	cp /etc/portage/package.use /etc/portage/package.use.bak
+	grep -v '^[<>=]*$cat\/$pkg[(-([:digit:]+\.?)+ ]' /etc/portage/package.use > /etc/portage/package.use.new
+	mv /etc/portage/package.use.new /etc/portage/package.use
+}
 # cleans all installations of tested packages
 init()
 {
@@ -50,7 +78,7 @@ init()
 		[ -d $ROOT/$cat ] || die "Unexpected file in $ROOT/$cat"
 		for pkg in `ls $ROOT/$cat`; do
 			ALL_PKG+=" $cat/$pkg"
-			comment_pkg $cat $pkg
+			pkg_use_comment $cat $pkg
 		done
 	done
 	# depclean all packages
@@ -82,7 +110,7 @@ load_pkg_versions()
 	fi
 }
 
-# load use flags
+# load all use flags of a pkg
 load_version_use()
 {
 	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
@@ -114,6 +142,22 @@ run_version_withflags()
 	local runflags=$3
 }
 
+# install a pkg version with given use flags
+install_pkg(){
+	( [ "$1" != '' ] || [ "$2" != '' || [ "$3" != '' ] ) || die "Missing input"
+	local catpkg=$1
+	local vers=$2
+	local runflags=$3
+	local cat=`echo $catpkg |  sed -r 's/\/.*//'`
+	local pkg=`echo "$catpkg" | sed -r 's/[^\/]+\///'`
+	echo "$cat" "$pkg" "$vers" "$runflags"
+	# set in package.use
+	pkg_use_define "$cat" "$pkg" "$vers" "$runflags"
+
+
+	pkg_use_remove "$cat" "$pkg"
+}
+
 # loop over all possible use flag combinatios
 # for a given package version
 run_version()
@@ -141,11 +185,13 @@ run_version()
 		done
 		i=`echo "$i+1" | bc`
 		echo "$runflags"
+
+		install_pkg "$catpkg" "$vers" "$runflags"
 	done
 }
 
 # loop over all packages
-# plus loop over all versions
+# plus loop over all their versions
 run(){
 	# loop over all packages
 	for catpkg in $ALL_PKG; do
