@@ -3,8 +3,10 @@
 
 # requires: sys-devel/bc
 
+ROOT=$(dirname `readlink -f $0`)/tests
+
 # source for common functions
-source bin/common.sh
+source $ROOT/../bin/common.sh
 
 # run tests based on scripts in ./tests folder
 # 
@@ -19,127 +21,29 @@ source bin/common.sh
 # versions scripts may override package scripts
 
 # variables
-ROOT=$(dirname `readlink -f $0`)/tests
 ALL_PKG=
-VERSIONS=
-FLAGS=
 
-# check if run as root
-if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root" 1>&2
-   exit 1
-fi
+# check if running as root
+check_sudo
 
-# package.use: comment a pkg
-pkg_use_comment()
-{
-	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
-	local cat=$1
-	local pkg=$2
-	# comment out in package.use
-	sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.use
-	# TODO: take care of pkg.accept_keywords.
-	# Must be done manually for all versions at the moment
-	# sed -i "s/^[<>=]*$cat\/$pkg[: ]/# \0/g" /etc/portage/package.accept_keywords
-}
-
-# package.use: define a pkg version with use flags
-# nothing inserted if no use flags must be set
-pkg_use_define()
-{
-	( [ "$1" != '' ] || [ "$2" != '' || [ "$3" != '' ] ) || die "Missing input"
-	local cat=$1
-	local pkg=$2
-	local vers=$3
-	local runflags=$4
-	# only insert when use flags are not empty
-	if [ "$runflags" != '' ];then
-		echo "$cat/$pkg:$vers $runflags" >> /etc/portage/package.use
-	fi
-	exit 1
-}
-
-# package.use: remove a pkg
-pkg_use_remove()
-{
-	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
-	local cat=$1
-	local pkg=$2
-	# remove from package.use
-	cp /etc/portage/package.use /etc/portage/package.use.bak
-	grep -v '^[<>=]*$cat\/$pkg[(-([:digit:]+\.?)+ ]' /etc/portage/package.use > /etc/portage/package.use.new
-	mv /etc/portage/package.use.new /etc/portage/package.use
-}
 # cleans all installations of tested packages
 init()
 {
-	# clean all existing installations
+	local subscript=$ROOT/../bin/edit-package.use.sh
+	# loop over folder in ./test ...
 	for cat in `ls $ROOT/`; do
 		[ -d $ROOT/$cat ] || die "Unexpected file in $ROOT/$cat"
 		for pkg in `ls $ROOT/$cat`; do
 			ALL_PKG+=" $cat/$pkg"
-			pkg_use_comment $cat $pkg
+			# comment out in package.use
+			$subscript comment-out $cat/$pkg || die "Failure in: $subscript comment-out $catpkg"
 		done
 	done
 	# depclean all packages
 	emerge --depclean -v ${ALL_PKG} || die "initial depclean failed"
-}
-
-# get all versions & versions of a pkg
-# TODO: better parse function
-# too much black magic in here
-load_pkg_versions()
-{
-	[ "$1" != '' ] || die "Missing input"
-	local catpkg=$1
-	# version folders present, otherwise use all available versions
-	# all subfolders of ./tests/cat/pkg/ are treated as versions
-	if [ "`find $ROOT/$catpkg/ -maxdepth 1 -mindepth 1 -type d -printf %P\\n`" != '' ]; then
-		VERSIONS=`ls -d $ROOT/$catpkg/* | xargs -l basename | tr '\n' ' '`
-	# no version folder, load all versions
-	else
-		# parse from eix output 
-		local eix=`eix -l -x -Ae "$catpkg" || die "Shouldn't happen"`
-		# eeek, black magic
-		# result are versions
-		eix=`echo "$eix" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
-		eix=`echo "$eix" | sed -r 's/\s*\(?(~)?\)?\s+(\S+)\s.*/\2/'`
-		eix=`echo "$eix" | sed -r 's/([^9]+)\s/\1/'`
-		[ "$eix" != '' ] || die "Parsing of versions failed!"
-		VERSIONS=$eix
-	fi
-}
-
-# load all use flags of a pkg
-load_version_use()
-{
-	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
-	local catpkg=$1
-	local vers=$2
-	local eix=`eix -l -x -Ae "$catpkg" || die "Shouldn't happen"`
-	# eeek, black magic
-	eix=`echo "$eix" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
-	# escape string
-	local versEsc="`echo "$vers" | sed -E 's/[^[:alnum:]_-]/\\\\\0/g'`" # why this needs so many \\\ i dunno!?!
-	eix="`echo "$eix" | grep -r "[[:space:]]$versEsc[[:space:]]"`"
-	# no flags
-	if [ "`echo "$eix" | sed -n '/\[/p'`" == '' ]; then
-		FLAGS=''
-	# parse flags
-	else
-		FLAGS=`echo "$eix" | sed -r "s/.*\[(.+)\].*/\1/"`
-	fi
-	# echo "flags for $catpkg $vers:"
-	# echo $FLAGS
-}
-
-# install a given package version with given use flag combination
-run_version_withflags()
-{
-	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
-	local catpkg=$1
-	local vers=$2
-	local runflags=$3
+	# depclean system
+	emerge -v --depclean || die "initial depclean system failed"
+	revdep-rebuild || die "initial revdep-rebuild failed"
 }
 
 # install a pkg version with given use flags
@@ -148,14 +52,22 @@ install_pkg(){
 	local catpkg=$1
 	local vers=$2
 	local runflags=$3
-	local cat=`echo $catpkg |  sed -r 's/\/.*//'`
-	local pkg=`echo "$catpkg" | sed -r 's/[^\/]+\///'`
-	echo "$cat" "$pkg" "$vers" "$runflags"
+	local subscript=$ROOT/../bin/edit-package.use.sh
 	# set in package.use
-	pkg_use_define "$cat" "$pkg" "$vers" "$runflags"
+	# only insert when use flags are not empty
+	if [ "$runflags" != '' ];then
+		$subscript insert $catpkg $vers $runflags || die "Failure in: $subscript insert $catpkg $vers $runflags"
+	fi
+	# emerge package-version
+	emerge -v =$catpkg-$vers
 
+	exit 1
 
-	pkg_use_remove "$cat" "$pkg"
+	# depclean the package
+	emerge --depclean -v =$catpkg-$vers || die "depclean failed"
+	# depclean system
+	emerge -v --depclean || die "depclean system failed"
+	revdep-rebuild || die "revdep-rebuild failed"
 }
 
 # loop over all possible use flag combinatios
@@ -165,8 +77,10 @@ run_version()
 	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
 	local catpkg=$1
 	local vers=$2
+	local subscript=$ROOT/../bin/get-pkg-version-info.sh
+	local useflags=`$subscript useflags $catpkg $ver || die "Failure in: $subscript useflags $catpkg $ver"`
 	# skip test flag
-	local useflags=`echo "$FLAGS" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
+	local useflags=`echo "$useflags" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
 	echo "flags for $catpkg $vers:"
 	echo "$useflags"
 	# loop over all possible combinations of use-flags (2^n -1)
@@ -194,10 +108,10 @@ run_version()
 # plus loop over all their versions
 run(){
 	# loop over all packages
+	local subscript=$ROOT/../bin/get-pkg-version-info.sh
 	for catpkg in $ALL_PKG; do
-		load_pkg_versions $catpkg
-		for ver in $VERSIONS; do
-			load_version_use $catpkg $ver
+		local versions=`$subscript versions $catpkg || die "Failure in: $subscript versions $catpkg"`
+		for ver in $versions; do
 			run_version $catpkg $ver
 		done
 	done 

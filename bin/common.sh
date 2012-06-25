@@ -9,6 +9,15 @@ die()
 	exit 1
 }
 
+# check if running as root
+check_sudo()
+{
+	if [[ $EUID -ne 0 ]]; then
+	   echo "This script must be run as root" 1>&2
+	   exit 1
+	fi
+}
+
 # fill list of USE flags
 # fill list of active USE flags
 init_use()
