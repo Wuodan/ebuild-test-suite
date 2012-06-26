@@ -40,7 +40,7 @@ init()
 		done
 	done
 	# depclean all packages
-	emerge -q --depclean -v ${ALL_PKG} || die "initial depclean failed"
+	emerge -q --depclean ${ALL_PKG} || die "initial depclean failed"
 	# depclean system
 	emerge -q --depclean || die "initial depclean system failed"
 	revdep-rebuild -q || die "initial revdep-rebuild failed"
@@ -59,20 +59,20 @@ install_pkg(){
 		$subscript insert $catpkg $vers "$runflags" || die "Failure in: $subscript insert $catpkg $vers '$runflags'"
 	fi
 	echo '**************************'
-	echo "Emerging $catpkg with flags [$runflags]"
+	echo "Emerging $catpkg version $vers with flags [$runflags]"
 	echo '**************************'
 	# emerge package-version
-	emerge -v =$catpkg-$vers
+	emerge -q =$catpkg-$vers || die "Failure to emerge: emerge =$catpkg-$vers"
 	# run tests for current installation
 	$ROOT/../package-test.sh $catpkg $vers || die "Test failed for: $ROOT/../package-test.sh $catpkg $vers"
 	# depclean the package
-	# emerge --depclean -v =$catpkg-$vers || die "depclean failed"
+	# emerge --depclean =$catpkg-$vers || die "depclean failed"
 	# TODO: the above fails with my ebuild
 	# either I get the DEPEND/RDEPEND wrong or it is as it is
 	# workaround: depclean all tested packages
-	emerge -q --depclean ${ALL_PKG}
+	emerge -q --depclean ${ALL_PKG} || die "depclean failed"
 	# depclean system
-	emerge  -q --depclean || die "depclean system failed"
+	emerge -q --depclean || die "depclean system failed"
 	revdep-rebuild -q || die "revdep-rebuild failed"
 }
 
@@ -113,8 +113,19 @@ run_version()
 run(){
 	# loop over all packages
 	local subscript=$ROOT/../bin/get-pkg-version-info.sh
+	local versions=
 	for catpkg in $ALL_PKG; do
-		local versions=`$subscript versions $catpkg || die "Failure in: $subscript versions $catpkg"`
+		# package versions defined in ./tests/cat/pkg/ as subfolders
+		for dir in $ROOT/$catpkg/*; do
+			echo $dir
+			if [ -d $dir ]; then
+				versions+=" $(basename $dir)"
+			fi
+		done
+		# no versions defined, load all versions
+		if [ "$versions" == '' ]; then
+			versions=`$subscript versions $catpkg || die "Failure in: $subscript versions $catpkg"`
+		fi
 		for ver in $versions; do
 			run_version $catpkg $ver
 		done
