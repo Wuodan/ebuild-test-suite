@@ -1,0 +1,9 @@
+ doc latex perl-conversions -shortcuts xslt
+ -doc -latex -perl-conversions shortcuts xslt
+ doc -latex -perl-conversions shortcuts xslt
+ -doc latex -perl-conversions shortcuts xslt
+ doc latex -perl-conversions shortcuts xslt
+ -doc -latex perl-conversions shortcuts xslt
+ doc -latex perl-conversions shortcuts xslt
+ -doc latex perl-conversions shortcuts xslt
+ doc latex perl-conversions shortcuts xslt

@@ -6,7 +6,7 @@
 ROOT=$(dirname `readlink -f $0`)/tests
 
 # source for common functions
-source $ROOT/../bin/common.sh
+source $ROOT/../scripts/common.sh
 
 # variables
 CATPKG=$1
@@ -56,7 +56,7 @@ source_scripts_from_folder()
 	local dir=$1
 	echo "Loading from $dir"
 	for script in `ls $dir`; do
-		if [ -f $dir/$script ]; then
+		if [ -x $dir/$script ]; then
 			source $dir/$script
 		fi
 	done
@@ -113,7 +113,7 @@ test()
 	for uflag in $use_active; do
 		# exclude test flag
 		if [ "$flag" != 'test' ]; then
-			if [ function_exists 'pkg_test_$uflag' ]; then
+			if function_exists 'pkg_test_$uflag'; then
 				pkg_test_$uflag || error "pkg_test_$uflag failed!"
 				clean || error "pkg_clean failed!"
 			else

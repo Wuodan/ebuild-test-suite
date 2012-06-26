@@ -38,3 +38,9 @@ function_exists()
 	# type $1 &>/dev/null && echo "$1() found." || echo "$1() not found."
 	type $1 &>/dev/null && return 0 || return 1
 }
+
+# reverses order of lines in input
+reverse_lines()
+{
+	sed -n '1!G;h;$p' $1
+}

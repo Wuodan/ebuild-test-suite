@@ -34,7 +34,9 @@ case $MODE in
 		# remove anything after first space
 		EIX=`echo "$EIX" | sed -r 's/\s+.*//'`
 		# remove trailing "!"
-			EIX=`echo "$EIX" | sed -r 's/\!+.*//'`
+		EIX=`echo "$EIX" | sed -r 's/\!+.*//'`
+		# remove trailing {tbz2} from binary package
+		EIX=`echo "$EIX" | sed -r 's/\{.*$//'`
 		[ "$EIX" != '' ] || die "Parsing of versions failed!"
 		echo "$EIX"
 		exit 0
@@ -45,7 +47,7 @@ case $MODE in
 		VERSION=$3
 		# escape string
 		# VERSION="`echo "$VERSION" | sed -E 's/[^[:alnum:]_-]/\\\\\0/g'`" # why this needs so many \\\ i dunno!?!
-		EIX="`echo "$EIX" | grep -r "^$VERSION[! ]"`"
+		EIX="`echo "$EIX" | grep -r "^$VERSION[{! ]"`"
 		# check if found
 		[ "`echo "$EIX" | grep "$VERSION"`" != '' ] || die "Version $VERSION of $CATPKG not found in eix output!"
 		# no flags
