@@ -17,7 +17,7 @@ MODE=$1
 CATPKG=$2
 
 # needed for all modes
-EIX=`eix -l -x -Ae "$CATPKG" || die "Could not get infos from eix for $CATPKG"`
+EIX=`eix -l -x -Ae "$CATPKG" | grep -v -E '^[[:space:]]+Installed versions:' || die "Could not get infos from eix for $CATPKG"`
 EIX=`echo "$EIX" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homepage:\s+.*/\1/g;p;}'` || die "Shouldn't happen"
 #remove blank lines
 EIX=`echo "$EIX" | grep -vE '^[[:space:]]*$'`

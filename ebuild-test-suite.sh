@@ -48,7 +48,7 @@ init()
 
 # install a pkg version with given use flags
 install_pkg(){
-	( [ "$1" != '' ] || [ "$2" != '' || [ "$3" != '' ] ) || die "Missing input"
+	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
 	local catpkg=$1
 	local vers=$2
 	local runflags=$3
@@ -117,7 +117,6 @@ run(){
 	for catpkg in $ALL_PKG; do
 		# package versions defined in ./tests/cat/pkg/ as subfolders
 		for dir in $ROOT/$catpkg/*; do
-			echo $dir
 			if [ -d $dir ]; then
 				versions+=" $(basename $dir)"
 			fi

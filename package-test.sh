@@ -37,10 +37,8 @@ error()
 # clean up everything
 cleanup()
 {
-	cd $DIR || die "cd failed"
-	rm $FILES || die  "rm failed"
-	cd ..
-	rmdir $DIR || die "rmdir failed"
+	cd $DIR/.. || die "cd failed"
+	rm -rf $DIR || die "rm -rf $DIR failed"
 }
 
 # clean up after a test, preserve files in $FILES
@@ -81,7 +79,11 @@ init()
 		fi
 		# pkg specific init
 		# grab some test files
-		pkg_init
+		if function_exists 'pkg_init'; then
+			pkg_init || error "pgk_init failed"
+		else
+			echo "Function pkg_init not defined!"
+		fi
 		cd $DIR || die "cd failed"
 		# read list of test files
 		FILES=`ls $DIR`
@@ -99,18 +101,24 @@ test_atom()
 test()
 {
 	# basic test
-	type  pkg_test &>/dev/null || error "Function pkg_test not found!"
-	pkg_test || error "pkg_test failed!"
-	clean || error "pkg_clean failed!"
+	if function_exists 'pkg_test'; then
+		pkg_test || error "pkg_test failed!"
+		clean || error "pkg_clean failed!"
+	else
+		echo "Function pkg_test not defined!"
+	fi
 	# fill list of active use flags
 	local use_active=`equery --quiet uses $CATPKG | grep '^\+' | cut -b 2- | tr '\n' ' '` || die "equery uses $CATPKG failed!"
 	# use flag tests
 	for uflag in $use_active; do
 		# exclude test flag
 		if [ "$flag" != 'test' ]; then
-			type  pkg_test_$uflag &>/dev/null || error "Function pkg_test_$uflag not found!"
-			pkg_test_$uflag || error "pkg_test_$uflag failed!"
-			clean || error "pkg_clean failed!"
+			if [ function_exists 'pkg_test_$uflag' ]; then
+				pkg_test_$uflag || error "pkg_test_$uflag failed!"
+				clean || error "pkg_clean failed!"
+			else
+				echo "Function pkg_test_$uflag not defined!"
+			fi
 		fi
 	done
 

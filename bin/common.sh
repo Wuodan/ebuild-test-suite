@@ -30,3 +30,11 @@ check_sudo()
 #	fi
 # }
 
+# find out if function is defined or not
+# returns 0 if exists and 1 if not
+function_exists()
+{
+	[ "$1" != '' ] || die "Missing parameter: function-name"
+	# type $1 &>/dev/null && echo "$1() found." || echo "$1() not found."
+	type $1 &>/dev/null && return 0 || return 1
+}
