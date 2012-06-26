@@ -113,7 +113,7 @@ test()
 	for uflag in $use_active; do
 		# exclude test flag
 		if [ "$flag" != 'test' ]; then
-			if function_exists 'pkg_test_$uflag'; then
+			if function_exists "pkg_test_$uflag"; then
 				pkg_test_$uflag || error "pkg_test_$uflag failed!"
 				clean || error "pkg_clean failed!"
 			else
