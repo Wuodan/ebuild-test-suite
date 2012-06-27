@@ -96,7 +96,7 @@ pt_test()
 		echo "Function pkg_test not defined!"
 	fi
 	# fill list of active use flags
-	local use_active=`equery --quiet uses $CATPKG | grep '^\+' | cut -b 2- | tr '\n' ' '` || die "equery uses $CATPKG failed!"
+	local use_active=`equery --quiet uses =$CATPKG-$PVR | grep '^\+' | cut -b 2- | tr '\n' ' '` || die "equery uses $CATPKG failed!"
 	# use flag tests
 	for uflag in $use_active; do
 		# exclude test flag

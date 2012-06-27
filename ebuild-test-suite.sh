@@ -76,7 +76,7 @@ prepare()
 	# check for previous config and ask for restart
 	local restart='n'
 	if [ -d $DIR_CONF ]; then
-		read -t 5 -p "Config from previous run found. Do you want to restart (5s timeout) ?(y/N)" restart
+		read -t 30 -p "Config from previous run found. Do you want to restart (30s timeout) ?(y/N)" restart
 		[ "$restart" == 'Y' ] && restart='y'
 		[ "$restart" != 'y' ] && rm -rf $DIR_CONF
 	fi
@@ -121,7 +121,7 @@ install_pkg()
 	echo "Emerging $catpkg version $vers with flags [$runflags]"
 	echo '**************************'
 	# emerge package-version using binary packages
-	emerge -q --usepkg =$catpkg-$vers || die "Failure to emerge: emerge =$catpkg-$vers"
+	emerge -q --usepkg --binpkg-respect-use y =$catpkg-$vers || die "Failure to emerge: emerge =$catpkg-$vers"
 	# run tests for current installation
 	$ROOT/package-test.sh $catpkg $vers || die "Test failed for: $ROOT/package-test.sh $catpkg $vers"
 }
