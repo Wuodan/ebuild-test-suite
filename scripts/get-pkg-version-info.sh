@@ -5,10 +5,10 @@
 
 # requires: app-portage/eix
 
-ROOT=$(dirname `readlink -f $0`)
+ROOT=$(dirname `readlink -f $0`)/..
 
 # source for common functions
-source $ROOT/common.sh
+source $ROOT/scripts/common.sh
 
 # parse input
 [ "$1" != '' ] || die "Missing first parameter: mode"

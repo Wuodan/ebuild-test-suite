@@ -3,10 +3,12 @@
 
 # test an installated package
 
-ROOT=$(dirname `readlink -f $0`)/tests
+ROOT=$(dirname `readlink -f $0`)
+DIR_TEST=$ROOT/tests
+DIR_CONF=$ROOT/config
 
 # source for common functions
-source $ROOT/../scripts/common.sh
+source $ROOT/scripts/common.sh
 
 # variables
 CATPKG=$1
@@ -21,28 +23,28 @@ FILES=
 if [ "$CATPKG" == '' ]; then
 	die "Missing package or category!"
 fi
-if [ ! -d "$ROOT/$CATPKG" ]; then 
-	die "$ROOT/$CATPKG is not a directory!"
+if [ ! -d "$DIR_TEST/$CATPKG" ]; then 
+	die "$DIR_TEST/$CATPKG is not a directory!"
 fi
-if [ "$PVR" != '' ] && [ ! -d "$ROOT/$CATPKG" ]; then
-	die "$ROOT/$CATPKG/$PVR is not a directory!"
+if [ "$PVR" != '' ] && [ ! -d "$DIR_TEST/$CATPKG" ]; then
+	die "$DIR_TEST/$CATPKG/$PVR is not a directory!"
 fi
 
 error()
 {
-	cleanup
+	pt_cleanup
 	die "$1"
 }
 
 # clean up everything
-cleanup()
+pt_cleanup()
 {
 	cd $DIR/.. || die "cd failed"
 	rm -rf $DIR || die "rm -rf $DIR failed"
 }
 
 # clean up after a test, preserve files in $FILES
-clean()
+pt_clean()
 {
 	local files=`ls -1 $TSTDIR | grep -vF -e "$FILES"`
 	# echo "files: $files"
@@ -51,18 +53,7 @@ clean()
 	fi
 }
 
-source_scripts_from_folder()
-{
-	local dir=$1
-	echo "Loading from $dir"
-	for script in `ls $dir`; do
-		if [ -x $dir/$script ]; then
-			source $dir/$script
-		fi
-	done
-}
-
-init()
+pt_init()
 {
 	echo "Work dir is $DIR"
 	if [ -e $DIR ]; then
@@ -73,9 +64,9 @@ init()
 		echo "Created work dir"
 		cd $DIR || die "cd failed"
 		# source all pkg scripts
-		source_scripts_from_folder $ROOT/$CATPKG
-		if [ "$PVR" != '' ] && [ -d $ROOT/$CATPKG/$PVR ]; then
-			source_scripts_from_folder $ROOT/$CATPKG/$PVR
+		source_scripts_from_folder $DIR_TEST/$CATPKG
+		if [ "$PVR" != '' ] && [ -d $DIR_TEST/$CATPKG/$PVR ]; then
+			source_scripts_from_folder $DIR_TEST/$CATPKG/$PVR
 		fi
 		# pkg specific init
 		# grab some test files
@@ -98,12 +89,12 @@ test_atom()
 	# $1 1>/dev/null || error "Test atom failed: $1"
 }
 
-test()
+pt_test()
 {
 	# basic test
 	if function_exists 'pkg_test'; then
 		pkg_test || error "pkg_test failed!"
-		clean || error "pkg_clean failed!"
+		pt_clean || error "pt_clean failed!"
 	else
 		echo "Function pkg_test not defined!"
 	fi
@@ -115,15 +106,14 @@ test()
 		if [ "$flag" != 'test' ]; then
 			if function_exists "pkg_test_$uflag"; then
 				pkg_test_$uflag || error "pkg_test_$uflag failed!"
-				clean || error "pkg_clean failed!"
+				pt_clean || error "pt_clean failed!"
 			else
 				echo "Function pkg_test_$uflag not defined!"
 			fi
 		fi
 	done
-
 }
 
-init
-test
-cleanup
+pt_init
+pt_test
+pt_cleanup

@@ -44,3 +44,17 @@ reverse_lines()
 {
 	sed -n '1!G;h;$p' $1
 }
+
+# source all scripts found in given folder
+source_scripts_from_folder()
+{
+	local dir=$1
+	echo "Loading from $dir"
+	for script in `ls $dir`; do
+		if [ -x $dir/$script ]; then
+			source $dir/$script
+		fi
+	done
+}
+
+

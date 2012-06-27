@@ -3,11 +3,12 @@
 
 # requires: sys-devel/bc
 
-ROOT=$(dirname `readlink -f $0`)/tests
+ROOT=$(dirname `readlink -f $0`)
+DIR_TEST=$ROOT/tests
 DIR_CONF=$ROOT/../config
 
 # source for common functions
-source $ROOT/../scripts/common.sh
+source $ROOT/scripts/common.sh
 
 # run tests based on scripts in ./tests folder
 # 
@@ -26,52 +27,19 @@ source $ROOT/../scripts/common.sh
 # check if running as root
 check_sudo
 
-# loads config for a package version and writes it to a file
-prepare_pkgvers()
-{
-	# echo function $FUNCNAME
-	( [ "$1" != '' ] || [ "$2" != '' ] ) || die "Missing input"
-	local catpkg=$1
-	local vers=$2
-	# remove config file for this pkg-version
-	[ -f $DIR_CONF/$catpkg/$vers ] && rm $DIR_CONF/$catpkg/$vers
-	local subscript=$ROOT/../scripts/get-pkg-version-info.sh
-	local useflags=`$subscript useflags $catpkg $vers` || die "Failure in: $subscript useflags $catpkg $vers"
-	# skip test flag
-	local useflags=`echo "$useflags" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
-	# echo "flags for $catpkg $vers:"
-	# echo "$useflags"
-	# loop over all possible combinations of use-flags (2^n -1)
-	local i=0
-	local listlen=`echo "$useflags" | wc -w`
-	while [ $i -lt `echo "2^$listlen" | bc` ]; do
-		local runflags=
-		local j=0
-		for flag in $useflags; do
-			runflags+=" "
-			if [ $(($i & `echo "2^$j" | bc` )) -eq 0 ]; then
-				runflags+="-"
-			fi
-			runflags+="$flag"
-			j=$(($j + 1))
-		done
-		# write to config file
-		echo "$runflags" >> $DIR_CONF/$catpkg/$vers
-		i=`echo "$i+1" | bc`
-	done
-}
-
-# loads config and writes it to file
+# loop over all package and version
+# trigger writing of use-flag combinations to config file
 prepare_config()
 {
 	# echo function $FUNCNAME
 	mkdir -p $DIR_CONF
-	local subscript=$ROOT/../scripts/get-pkg-version-info.sh
+	local script_version=$ROOT/scripts/get-pkg-version-info.sh
+	local script_config=$ROOT/scripts/prepare-package-config.sh
 	local allPkgs=
 	# loop over folder in ./test ...
-	for cat in `ls $ROOT/`; do
-		[ -d $ROOT/$cat ] || die "Unexpected file in $ROOT/$cat"
-		for pkg in `ls $ROOT/$cat`; do
+	for cat in `ls $DIR_TEST/`; do
+		[ -d $DIR_TEST/$cat ] || die "Unexpected file in $DIR_TEST/$cat"
+		for pkg in `ls $DIR_TEST/$cat`; do
 			allPkgs+=" $cat/$pkg"
 		done
 	done
@@ -83,18 +51,18 @@ prepare_config()
 		mkdir -p $DIR_CONF/$catpkg
 		local versions=
 		# package versions defined in ./tests/cat/pkg/ as subfolders
-		for dir in $ROOT/$catpkg/*; do
+		for dir in $DIR_TEST/$catpkg/*; do
 			if [ -d $dir ]; then
 				versions+=" $(basename $dir)"
 			fi
 		done
 		# no versions defined, load all versions
 		if [ "$versions" == '' ]; then
-			versions=`$subscript versions $catpkg` || die "Failure in: $subscript versions $catpkg"
+			versions=`$script_version versions $catpkg` || die "Failure in: $get-pkg-version-info versions $catpkg"
 		fi
 		# create config file for every version
 		for vers in $versions; do
-			prepare_pkgvers $catpkg $vers
+			$script_config $catpkg $vers || die "Failure in: $prepare-package-config $catpkg $vers"
 		done
 	done 
 }
@@ -118,7 +86,7 @@ prepare()
 init()
 {
 	# echo function $FUNCNAME
-	local subscript=$ROOT/../scripts/edit-package.use.sh
+	local subscript=$ROOT/scripts/edit-package.use.sh
 	# load from config file
 	local allPkgs="`cat $DIR_CONF/allPkgs.conf`"
 	# loop over all packages
@@ -142,7 +110,7 @@ install_pkg()
 	local catpkg=$1
 	local vers=$2
 	local runflags=$3
-	local subscript=$ROOT/../scripts/edit-package.use.sh
+	local subscript=$ROOT/scripts/edit-package.use.sh
 	# set in package.use
 	# only insert when use flags are not empty
 	if [ "$runflags" != '' ];then
@@ -154,7 +122,7 @@ install_pkg()
 	# emerge package-version using binary packages
 	emerge -q --usepkg =$catpkg-$vers || die "Failure to emerge: emerge =$catpkg-$vers"
 	# run tests for current installation
-	$ROOT/../package-test.sh $catpkg $vers || die "Test failed for: $ROOT/../package-test.sh $catpkg $vers"
+	$ROOT/package-test.sh $catpkg $vers || die "Test failed for: $ROOT/package-test.sh $catpkg $vers"
 }
 
 # depclean after a test-run
@@ -213,7 +181,7 @@ run_version()
 run()
 {
 	# echo function $FUNCNAME
-	local subscript=$ROOT/../scripts/get-pkg-version-info.sh
+	local subscript=$ROOT/scripts/get-pkg-version-info.sh
 	# load from config file
 	local allPkgs="`cat $DIR_CONF/allPkgs.conf`"
 	for catpkg in $allPkgs; do

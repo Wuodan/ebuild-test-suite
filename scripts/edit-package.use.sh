@@ -3,10 +3,10 @@
 
 # outsourced to this script because it's black magic :-)
 
-ROOT=$(dirname `readlink -f $0`)
+ROOT=$(dirname `readlink -f $0`)/..
 
 # source for common functions
-source $ROOT/common.sh
+source $ROOT/scripts/common.sh
 
 # check if running as root
 check_sudo
