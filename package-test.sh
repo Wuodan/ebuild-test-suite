@@ -32,19 +32,19 @@ fi
 
 error()
 {
-	pt_cleanup
+	cleanup
 	die "$1"
 }
 
 # clean up everything
-pt_cleanup()
+cleanup()
 {
 	cd $DIR/.. || die "cd failed"
 	rm -rf $DIR || die "rm -rf $DIR failed"
 }
 
 # clean up after a test, preserve files in $FILES
-pt_clean()
+clean()
 {
 	local files=`ls -1 $TSTDIR | grep -vF -e "$FILES"`
 	# echo "files: $files"
@@ -91,7 +91,7 @@ pt_test()
 	# basic test
 	if function_exists 'pkg_test'; then
 		pkg_test || error "pkg_test failed!"
-		pt_clean || error "pt_clean failed!"
+		clean || error "clean failed!"
 	else
 		echo "Function pkg_test not defined!"
 	fi
@@ -103,7 +103,7 @@ pt_test()
 		if [ "$flag" != 'test' ]; then
 			if function_exists "pkg_test_$uflag"; then
 				pkg_test_$uflag || error "pkg_test_$uflag failed!"
-				pt_clean || error "pt_clean failed!"
+				clean || error "clean failed!"
 			else
 				echo "Function pkg_test_$uflag not defined!"
 			fi
@@ -113,4 +113,4 @@ pt_test()
 
 pt_init
 pt_test
-pt_cleanup
+cleanup

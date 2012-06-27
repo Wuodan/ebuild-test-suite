@@ -11,6 +11,14 @@ pkg_flags()
 	FLAGS="${FLAGS/shortcuts/}"
 }
 
+# add a single line for test of flag "shortcuts"
+pkg_flag_combinations()
+{
+	# newline and flag
+	FLAG_COMBINATIONS+=$'\n'
+	FLAG_COMBINATIONS+='shortcuts'
+}
+
 # run test for use flag "doc"
 pkg_test_doc()
 {

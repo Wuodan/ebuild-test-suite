@@ -71,7 +71,7 @@ ppc_flag_combinations()
 		i=$[i+1]
 	done
 	if function_exists 'pkg_flag_combinations'; then
-		pkg_flags || error "pkg_flag_combinations failed for $CATPKG-$PVR"
+		pkg_flag_combinations || error "pkg_flag_combinations failed for $CATPKG-$PVR"
 	else
 		echo "Function pkg_flag_combinations not defined for $CATPKG-$PVR"
 	fi
