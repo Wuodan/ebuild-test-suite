@@ -190,8 +190,8 @@ A full test run will install the same packages (from dependencies) over and over
 Define PKGDIR and FEATURES="buildpkg" in make.conf  
 _Hint: The test-suite uses `emerge --usepkg --binpkg-respect-use y`.  
 Thus a binary will only be used if it was built with the same use flags._
-## cchache
-cchache is known to cause problems. So test without before you dig deep for other problems.  
+## ccache
+ccache is known to cause problems. So test without before you dig deep for other problems.  
 But it can greatly speed up a test run, especially when not using binary packages.
 ## Virtual Machine
 The point of testing dependencies is using a minimal system.  
