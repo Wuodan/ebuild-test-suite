@@ -22,10 +22,8 @@ FLAG_COMBINATIONS=
 # source package (and version) specific files
 ppc_include()
 {
-	# source all pkg scripts
-	if [ -d $DIR_TEST/$CATPKG/$PVR ]; then
-		source_scripts_from_folder $DIR_TEST/$CATPKG/$PVR
-	fi
+	# source all pkg (and version) scripts
+	source_pkg_version $DIR_TEST $CATPKG $PVR || die "Sourcing failed"
 }
 
 # loads config for a package version and writes it to a file
@@ -40,7 +38,7 @@ ppc_flags()
 	# echo "flags for $CATPKG $PVR:"
 	# echo "$FLAGS"
 	if function_exists 'pkg_flags'; then
-		pgk_prepare || error "pkg_flags failed for $CATPKG-$PVR"
+		pkg_flags || error "pkg_flags failed for $CATPKG-$PVR"
 	else
 		echo "Function pkg_flags not defined for $CATPKG-$PVR"
 	fi
@@ -73,7 +71,7 @@ ppc_flag_combinations()
 		i=$[i+1]
 	done
 	if function_exists 'pkg_flag_combinations'; then
-		pgk_prepare || error "pkg_flag_combinations failed for $CATPKG-$PVR"
+		pkg_flags || error "pkg_flag_combinations failed for $CATPKG-$PVR"
 	else
 		echo "Function pkg_flag_combinations not defined for $CATPKG-$PVR"
 	fi

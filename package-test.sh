@@ -63,11 +63,8 @@ pt_init()
 		mkdir -p $DIR || die "mkdir failed"
 		echo "Created work dir"
 		cd $DIR || die "cd failed"
-		# source all pkg scripts
-		source_scripts_from_folder $DIR_TEST/$CATPKG
-		if [ "$PVR" != '' ] && [ -d $DIR_TEST/$CATPKG/$PVR ]; then
-			source_scripts_from_folder $DIR_TEST/$CATPKG/$PVR
-		fi
+		# source all pkg (and version) scripts
+		source_pkg_version $DIR_TEST $CATPKG $PVR || die "Sourcing failed"
 		# pkg specific init
 		# grab some test files
 		if function_exists 'pkg_init'; then

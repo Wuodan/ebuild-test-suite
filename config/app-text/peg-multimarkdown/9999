@@ -1,32 +1,16 @@
- -doc -latex -perl-conversions -shortcuts -xslt
- doc -latex -perl-conversions -shortcuts -xslt
- -doc latex -perl-conversions -shortcuts -xslt
- doc latex -perl-conversions -shortcuts -xslt
- -doc -latex perl-conversions -shortcuts -xslt
- doc -latex perl-conversions -shortcuts -xslt
- -doc latex perl-conversions -shortcuts -xslt
- doc latex perl-conversions -shortcuts -xslt
- -doc -latex -perl-conversions shortcuts -xslt
- doc -latex -perl-conversions shortcuts -xslt
- -doc latex -perl-conversions shortcuts -xslt
- doc latex -perl-conversions shortcuts -xslt
- -doc -latex perl-conversions shortcuts -xslt
- doc -latex perl-conversions shortcuts -xslt
- -doc latex perl-conversions shortcuts -xslt
- doc latex perl-conversions shortcuts -xslt
- -doc -latex -perl-conversions -shortcuts xslt
- doc -latex -perl-conversions -shortcuts xslt
- -doc latex -perl-conversions -shortcuts xslt
- doc latex -perl-conversions -shortcuts xslt
- -doc -latex perl-conversions -shortcuts xslt
- doc -latex perl-conversions -shortcuts xslt
- -doc latex perl-conversions -shortcuts xslt
- doc latex perl-conversions -shortcuts xslt
- -doc -latex -perl-conversions shortcuts xslt
- doc -latex -perl-conversions shortcuts xslt
- -doc latex -perl-conversions shortcuts xslt
- doc latex -perl-conversions shortcuts xslt
- -doc -latex perl-conversions shortcuts xslt
- doc -latex perl-conversions shortcuts xslt
- -doc latex perl-conversions shortcuts xslt
- doc latex perl-conversions shortcuts xslt
+ -doc -latex -perl-conversions -xslt
+ doc -latex -perl-conversions -xslt
+ -doc latex -perl-conversions -xslt
+ doc latex -perl-conversions -xslt
+ -doc -latex perl-conversions -xslt
+ doc -latex perl-conversions -xslt
+ -doc latex perl-conversions -xslt
+ doc latex perl-conversions -xslt
+ -doc -latex -perl-conversions xslt
+ doc -latex -perl-conversions xslt
+ -doc latex -perl-conversions xslt
+ doc latex -perl-conversions xslt
+ -doc -latex perl-conversions xslt
+ doc -latex perl-conversions xslt
+ -doc latex perl-conversions xslt
+ doc latex perl-conversions xslt

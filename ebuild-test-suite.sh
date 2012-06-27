@@ -5,7 +5,7 @@
 
 ROOT=$(dirname `readlink -f $0`)
 DIR_TEST=$ROOT/tests
-DIR_CONF=$ROOT/../config
+DIR_CONF=$ROOT/config
 
 # source for common functions
 source $ROOT/scripts/common.sh
@@ -33,6 +33,7 @@ prepare_config()
 {
 	# echo function $FUNCNAME
 	mkdir -p $DIR_CONF
+	echo " mkdir -p $DIR_CONF"
 	local script_version=$ROOT/scripts/get-pkg-version-info.sh
 	local script_config=$ROOT/scripts/prepare-package-config.sh
 	local allPkgs=

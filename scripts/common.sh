@@ -51,10 +51,26 @@ source_scripts_from_folder()
 	local dir=$1
 	echo "Loading from $dir"
 	for script in `ls $dir`; do
-		if [ -x $dir/$script ]; then
-			source $dir/$script
+		if [ -f $dir/$script ]; then
+			source $dir/$script || die "Failure with: source $dir/$script"
 		fi
 	done
 }
 
-
+# source all scripts for a package and version
+source_pkg_version()
+{
+	[ "$1" != '' ] || die "Missing parameter: folder"
+	local dirtest=$1
+	[ "$2" != '' ] || die "Missing parameter: category/package"
+	local catpkg=$2
+	[ "$3" != '' ] || die "Missing parameter: version"
+	local pvr=$3
+	[ ! -d $dirtest/$catpkg ] && die "Not a folder: $dirtest/$catpkg"
+	# source all pkg scripts
+	source_scripts_from_folder $dirtest/$catpkg || die "Failure sourcing scripts in $dirtest/$catpkg"
+	# source version scripts
+	if [ -d $dirtest/$catpkg/$pvr ]; then
+		source_scripts_from_folder $dirtest/$catpkg/$pvr || die "Failure sourcing scripts in $dirtest/$catpkg/$pvr"
+	fi
+}
