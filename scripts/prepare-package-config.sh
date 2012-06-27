@@ -14,58 +14,68 @@ source $ROOT/scripts/common.sh
 [ "$1" != '' ] || die "Missing first parameter: category/package"
 CATPKG=$1
 [ "$2" != '' ] || die "Missing second parameter: version"
+# other variables
 PVR=$2
+FLAGS=
 FLAG_COMBINATIONS=
 
-# loads config for a package version and writes it to a file
-# each line holds a combination of use flags
-# pkg-specific files are sourced before writing, so they can modify this config
-ppc_prepare()
-{
-	local subscript=$ROOT/scripts/get-pkg-version-info.sh
-	local useflags=`$subscript useflags $CATPKG $PVR` || die "Failure in: $subscript useflags $CATPKG $PVR"
-	# skip test flag
-	local useflags=`echo "$useflags" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
-	# echo "flags for $CATPKG $PVR:"
-	# echo "$useflags"
-	# loop over all possible combinations of use-flags (2^n -1)
-	local i=0
-	local listlen=`echo "$useflags" | wc -w`
-	# 2 power of listlen
-	# alternative: `echo "2^$listlen" | bc`
-	while [ $i -lt $[2**listlen] ]; do
-		local runflags=
-		local j=0
-		for flag in $useflags; do
-			runflags+=" "
-			if [ $(($i & $[2**j])) -eq 0 ]; then
-				runflags+="-"
-			fi
-			runflags+="$flag"
-			j=$(($j + 1))
-		done
-		FLAG_COMBINATIONS+="$runflags"
-		# append newline
-		if [ $i -lt $[2**listlen -1]; then
-			FLAG_COMBINATIONS+='\n'
-		fi
-		i=$[i+1]
-	done
-}
-
 # source package (and version) specific files
-# call the pkg-specific function pkg_prepare()
-# if it is defined
 ppc_include()
 {
 	# source all pkg scripts
 	if [ -d $DIR_TEST/$CATPKG/$PVR ]; then
 		source_scripts_from_folder $DIR_TEST/$CATPKG/$PVR
 	fi
-	if function_exists 'pkg_prepare'; then
-		pgk_prepare || error "pkg_prepare failed"
+}
+
+# loads config for a package version and writes it to a file
+# each line holds a combination of use flags
+# pkg-specific function "pkg_flags()" is called, so it can modify this config
+ppc_flags()
+{
+	local subscript=$ROOT/scripts/get-pkg-version-info.sh
+	FLAGS=`$subscript useflags $CATPKG $PVR` || die "Failure in: $subscript useflags $CATPKG $PVR"
+	# skip test flag
+	FLAGS=`echo "$FLAGS" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
+	# echo "flags for $CATPKG $PVR:"
+	# echo "$FLAGS"
+	if function_exists 'pkg_flags'; then
+		pgk_prepare || error "pkg_flags failed for $CATPKG-$PVR"
 	else
-		echo "Function pgk_prepare  not defined!"
+		echo "Function pkg_flags not defined for $CATPKG-$PVR"
+	fi
+}
+
+# prepare flag combinations
+# pkg-specific function "pkg_flag_combinations()" is called, so it can modify this config
+ppc_flag_combinations()
+{
+	# loop over all possible combinations of use-flags (2^n -1)
+	FLAG_COMBINATIONS=
+	local i=0
+	local listlen=`echo "$FLAGS" | wc -w`
+	# 2 power of listlen
+	# alternative: `echo "2^$listlen" | bc`
+	while [ $i -lt $[2**listlen] ]; do
+		local j=0
+		for flag in $FLAGS; do
+			FLAG_COMBINATIONS+=" "
+			if [ $(($i & $[2**j])) -eq 0 ]; then
+				FLAG_COMBINATIONS+="-"
+			fi
+			FLAG_COMBINATIONS+="$flag"
+			j=$(($j + 1))
+		done
+		# append newline
+		if [ $i -lt $[2**listlen -1] ]; then
+			FLAG_COMBINATIONS+=$'\n'
+		fi
+		i=$[i+1]
+	done
+	if function_exists 'pkg_flag_combinations'; then
+		pgk_prepare || error "pkg_flag_combinations failed for $CATPKG-$PVR"
+	else
+		echo "Function pkg_flag_combinations not defined for $CATPKG-$PVR"
 	fi
 }
 
@@ -75,10 +85,11 @@ ppc_write()
 	# remove config file for this pkg-version
 	[ -f $DIR_CONF/$CATPKG/$PVR ] && rm $DIR_CONF/$CATPKG/$PVR
 	# write to config file
-	echo "$runflags" >> $DIR_CONF/$CATPKG/$PVR
+	echo "$FLAG_COMBINATIONS" >> $DIR_CONF/$CATPKG/$PVR
 
 }
 
-ppc_prepare
 ppc_include
+ppc_flags
+ppc_flag_combinations
 ppc_write
