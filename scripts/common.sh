@@ -30,6 +30,17 @@ check_sudo()
 #	fi
 # }
 
+# check if use flag is acticated
+use()
+{
+	[ "$1" != '' ] || die "Missing parameter: use-flag"
+	if [[ " $FLAGS " == *"$1"* ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 # find out if function is defined or not
 # returns 0 if exists and 1 if not
 function_exists()

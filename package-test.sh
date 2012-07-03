@@ -13,6 +13,12 @@ source $ROOT/scripts/common.sh
 # variables
 CATPKG=$1
 PVR=$2
+# fill list of active use flags
+FLAGS=`equery --quiet uses =$CATPKG-$PVR | \
+	grep '^\+' | cut -b 2- | tr '\n' ' '` || \
+	die "equery uses =$CATPKG-$PVR failed!"
+# skip test flag
+FLAGS=`echo "$FLAGS" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
 DIR=/tmp/ebuild-test-suite/$CATPKG
 if [ "$PVR" != '' ]; then
 	DIR=$DIR-$PVR
@@ -95,18 +101,13 @@ pt_test()
 	else
 		echo "Function pkg_test not defined!"
 	fi
-	# fill list of active use flags
-	local use_active=`equery --quiet uses =$CATPKG-$PVR | grep '^\+' | cut -b 2- | tr '\n' ' '` || die "equery uses =$CATPKG-$PVR failed!"
 	# use flag tests
-	for uflag in $use_active; do
-		# exclude test flag
-		if [ "$flag" != 'test' ]; then
-			if function_exists "pkg_test_$uflag"; then
-				pkg_test_$uflag || error "pkg_test_$uflag failed!"
-				clean || error "clean failed!"
-			else
-				echo "Function pkg_test_$uflag not defined!"
-			fi
+	for uflag in $FLAGS; do
+		if function_exists "pkg_test_$uflag"; then
+			pkg_test_$uflag || error "pkg_test_$uflag failed!"
+			clean || error "clean failed!"
+		else
+			echo "Function pkg_test_$uflag not defined!"
 		fi
 	done
 }
