@@ -22,7 +22,7 @@ EIX=`echo "$EIX" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homep
 #remove blank lines
 EIX=`echo "$EIX" | grep -vE '^[[:space:]]*$'`
 # remove leading things
-EIX=`echo "$EIX" | sed -r 's/^\s*\(?(~)?\)?\**\s*//'`
+EIX=`echo "$EIX" | sed -r 's/^\s*\(?(~|\*\*)?\)?\**\s*//'`
 
 # act according to mode
 case $MODE in
