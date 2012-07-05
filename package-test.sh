@@ -13,12 +13,6 @@ source $ROOT/scripts/common.sh
 # variables
 CATPKG=$1
 PVR=$2
-# fill list of active use flags
-FLAGS=`equery --quiet uses =$CATPKG-$PVR | \
-	grep '^\+' | cut -b 2- | tr '\n' ' '` || \
-	die "equery uses =$CATPKG-$PVR failed!"
-# skip test flag
-FLAGS=`echo "$FLAGS" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
 DIR=/tmp/ebuild-test-suite/$CATPKG
 if [ "$PVR" != '' ]; then
 	DIR=$DIR-$PVR
@@ -35,6 +29,13 @@ fi
 if [ "$PVR" != '' ] && [ ! -d "$DIR_TEST/$CATPKG" ]; then
 	die "$DIR_TEST/$CATPKG/$PVR is not a directory!"
 fi
+
+# fill list of active use flags
+FLAGS=`equery --quiet uses =$CATPKG-$PVR | \
+	grep '^\+' | cut -b 2- | tr '\n' ' '` || \
+	die "equery uses =$CATPKG-$PVR failed!"
+# skip test flag
+FLAGS=`echo "$FLAGS" | sed 's/^test //' | sed 's/ test//' | sed 's/ test //'`
 
 error()
 {
@@ -89,7 +90,7 @@ test_atom()
 	echo "Running test atom: $1"
 	# stdout is suppressed
 	# TODO: write logs
-	# $1 1>/dev/null || error "Test atom failed: $1"
+	$1 1>/dev/null || error "Test atom failed: $1"
 }
 
 pt_test()
