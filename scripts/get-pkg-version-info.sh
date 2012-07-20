@@ -49,7 +49,8 @@ case $MODE in
 		VERSION=$3
 		# escape string
 		# VERSION="`echo "$VERSION" | sed -E 's/[^[:alnum:]_-]/\\\\\0/g'`" # why this needs so many \\\ i dunno!?!
-		EIX="`echo "$EIX" | grep -r "^$VERSION[\[{! ]"`"
+		# EIX="`echo "$EIX" | grep -r "^$VERSION[\[{! ]"`"
+		EIX="`echo "$EIX" | grep -r "^$VERSION[\[{!([:space:])]"`"
 		# remove [1]
 		EIX=`echo "$EIX" | sed -r 's/\[[[:digit:]]+\]//'`
 		# check if found
