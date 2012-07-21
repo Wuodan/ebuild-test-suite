@@ -76,8 +76,8 @@ pt_init()
 		# grab some test files
 		if function_exists 'pkg_init'; then
 			pkg_init || error "pgk_init failed"
-		else
-			echo "Function pkg_init not defined!"
+		# else
+			# echo "Function pkg_init not defined!"
 		fi
 		cd $DIR || die "cd failed"
 		# read list of test files
@@ -99,24 +99,24 @@ pt_test()
 	if function_exists 'pkg_test'; then
 		pkg_test || error "pkg_test failed!"
 		clean || error "clean failed!"
-	else
-		echo "Function pkg_test not defined!"
+	# else
+		# echo "Function pkg_test not defined!"
 	fi
 	# use flag tests
 	for uflag in $FLAGS; do
 		if function_exists "pkg_test_$uflag"; then
 			pkg_test_$uflag || error "pkg_test_$uflag failed!"
 			clean || error "clean failed!"
-		else
-			echo "Function pkg_test_$uflag not defined!"
+		# else
+			# echo "Function pkg_test_$uflag not defined!"
 		fi
 	done
 	# stop services, etc
 	if function_exists 'pkg_stop'; then
 		pkg_stop || error "pkg_stop failed!"
 		clean || error "clean failed!"
-	else
-		echo "Function pkg_stop not defined!"
+	# else
+		# echo "Function pkg_stop not defined!"
 	fi
 }
 

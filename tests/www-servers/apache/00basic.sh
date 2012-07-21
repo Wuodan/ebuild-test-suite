@@ -2,7 +2,8 @@
 # Author: Stefan Kuhn <woudan@hispeed.ch>
 
 MY_FLAGS=
-CRITICAL_FLAGS='apache2_modules_authz_host apache2_modules_dir apache2_modules_mime'
+MODULE_CRITICAL=" access_compat authn_core authz_core authz_host dir mime socache_shmcb unixd"
+CRITICAL_FLAGS=${MODULE_CRITICAL// / apache2_modules_}
 IUSE_MPMS_FORK="prefork" # disabled itk peruser
 IUSE_MPMS_THREAD="event worker"
 
@@ -10,7 +11,10 @@ IUSE_MPMS_THREAD="event worker"
 # there must be a reason and it must be noted here ;-)
 # itk : configure: error: MPM itk is not supported on this platform. (amd64)
 # peruser : configure: error: MPM peruser is not supported on this platform. (amd64)
-DISABLED_FLAGS=" apache2_mpms_itk apache2_mpms_peruser"
+# proxy_scgi: Syntax error on line 145 of /etc/apache2/httpd.conf: Cannot load /usr/lib64/apache2/modules/mod_proxy_scgi.so into server: /usr/lib64/apache2/modules/mod_proxy_scgi.so: undefined symbol: ap_proxy_release_connection
+# static: AH00526: Syntax error on line 67 of /etc/apache2/httpd.conf: Invalid command 'User', perhaps misspelled or defined by a module not included in the server configuration
+# reminder => activate static test below once fixed
+DISABLED_FLAGS=" apache2_mpms_itk apache2_mpms_peruser apache2_modules_proxy_scgi static"
 
 DAV_FLAGS=" dav_fs dav_lock"
 FILTER_FLAGS=" deflate ext_filter substitute"
@@ -49,34 +53,45 @@ pkg_flag_combinations()
 	# append negated disabled flags to critical
 	CRITICAL_FLAGS+=" ${DISABLED_FLAGS// / -} "
 
+	# one line per MPMS with maximum active flags
+	# once with static flag and once without
+	local static=
+	# reminder => static<=2 once static is fixed
+	for (( static=0; static<=1; static++)); do
+		for flag in $IUSE_MPMS_FORK $IUSE_MPMS_THREAD; do
+			line=" ${MY_FLAGS/ static / }"
+			# append critical flags
+			line+=" ${CRITICAL_FLAGS} "
+			# disable all other MPMS
+			for mflag in $IUSE_MPMS_FORK $IUSE_MPMS_THREAD; do
+				if [ "$flag" != "$mflag" ]; then
+					line=${line/ apache2_mpms_$mflag / -apache2_mpms_$mflag }
+				fi
+			done
+			# no thread MPMS
+			for mflag in $IUSE_MPMS_FORK; do
+				if [ "$flag" == "$mflag" ]; then
+					line=${line/ threads / -threads }
+					break
+				fi
+			done
+			# toggle static flag
+			if [ $static -eq 0 ]; then
+				line+=" -static"
+			else
+				line+=" static"
+			fi
+			FLAG_COMBINATIONS+="$line"
+			FLAG_COMBINATIONS+=$'\n'
+		done
+	done
+
 	# one line with minimum active flags
 	line=" ${flagsmin}"
 	# append critical flags
 	line+=" ${CRITICAL_FLAGS}"
 	FLAG_COMBINATIONS+="$line"
 	FLAG_COMBINATIONS+=$'\n'
-
-	# one line per MPMS with maximum active flags
-	for flag in $IUSE_MPMS_FORK $IUSE_MPMS_THREAD; do
-		line=" ${MY_FLAGS}"
-		# append critical flags
-		line+=" ${CRITICAL_FLAGS} "
-		# disable all other MPMS
-		for mflag in $IUSE_MPMS_FORK $IUSE_MPMS_THREAD; do
-			if [ "$flag" != "$mflag" ]; then
-				line=${line/ apache2_mpms_$mflag / -apache2_mpms_$mflag }
-			fi
-		done
-		# no thread MPMS
-		for mflag in $IUSE_MPMS_FORK; do
-			if [ "$flag" == "$mflag" ]; then
-				line=${line/ threads / -threads }
-				break
-			fi
-		done
-		FLAG_COMBINATIONS+="$line"
-		FLAG_COMBINATIONS+=$'\n'
-	done
 
 	# add a single line for each flag
 	for flag in $MY_FLAGS; do
@@ -160,6 +175,7 @@ pkg_test()
 	if [ "`cat index.html`" != '<html><body><h1>It works!</h1></body></html>' ]; then
 		die "index.html check fails"
 	fi
+	test_atom "rm index.html"
 }
 
 pkg_test_ssl()
@@ -168,6 +184,7 @@ pkg_test_ssl()
 	if [ "`cat index.html`" != '<html><body><h1>It works!</h1></body></html>' ]; then
 		die "SSL index.html check fails"
 	fi
+	test_atom "rm index.html"
 }
 
 pkg_stop()
