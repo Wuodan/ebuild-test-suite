@@ -111,6 +111,13 @@ pt_test()
 			echo "Function pkg_test_$uflag not defined!"
 		fi
 	done
+	# stop services, etc
+	if function_exists 'pkg_stop'; then
+		pkg_stop || error "pkg_stop failed!"
+		clean || error "clean failed!"
+	else
+		echo "Function pkg_stop not defined!"
+	fi
 }
 
 pt_init

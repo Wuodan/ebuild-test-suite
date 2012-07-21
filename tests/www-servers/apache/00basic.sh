@@ -3,6 +3,14 @@
 
 MY_FLAGS=
 CRITICAL_FLAGS='apache2_modules_authz_host apache2_modules_dir apache2_modules_mime'
+IUSE_MPMS_FORK="prefork" # disabled itk peruser
+IUSE_MPMS_THREAD="event worker"
+
+# DISABLED FLAGS:
+# there must be a reason and it must be noted here ;-)
+# itk : configure: error: MPM itk is not supported on this platform. (amd64)
+# peruser : configure: error: MPM peruser is not supported on this platform. (amd64)
+DISABLED_FLAGS=" apache2_mpms_itk apache2_mpms_peruser"
 
 DAV_FLAGS=" dav_fs dav_lock"
 FILTER_FLAGS=" deflate ext_filter substitute"
@@ -20,6 +28,10 @@ pkg_flags()
 	for flag in $CRITICAL_FLAGS; do
 		MY_FLAGS=${MY_FLAGS/ $flag / }
 	done
+	# remove disabled
+	for flag in $DISABLED_FLAGS; do
+		MY_FLAGS=${MY_FLAGS/ $flag / }
+	done
 	# remove dav
 	# for flag in $DAV_FLAGS; do
 		# MY_FLAGS=${MY_FLAGS/ $flag / }
@@ -34,12 +46,8 @@ pkg_flag_combinations()
 	local lastflag="${MY_FLAGS##* }"
 	local line=
 
-	# one line with maximum active flags
-	line=" ${MY_FLAGS}"
-	# append critical flags
-	line+=" ${CRITICAL_FLAGS}"
-	FLAG_COMBINATIONS+="$line"
-	FLAG_COMBINATIONS+=$'\n'
+	# append negated disabled flags to critical
+	CRITICAL_FLAGS+=" ${DISABLED_FLAGS// / -} "
 
 	# one line with minimum active flags
 	line=" ${flagsmin}"
@@ -48,11 +56,41 @@ pkg_flag_combinations()
 	FLAG_COMBINATIONS+="$line"
 	FLAG_COMBINATIONS+=$'\n'
 
+	# one line per MPMS with maximum active flags
+	for flag in $IUSE_MPMS_FORK $IUSE_MPMS_THREAD; do
+		line=" ${MY_FLAGS}"
+		# append critical flags
+		line+=" ${CRITICAL_FLAGS} "
+		# disable all other MPMS
+		for mflag in $IUSE_MPMS_FORK $IUSE_MPMS_THREAD; do
+			if [ "$flag" != "$mflag" ]; then
+				line=${line/ apache2_mpms_$mflag / -apache2_mpms_$mflag }
+			fi
+		done
+		# no thread MPMS
+		for mflag in $IUSE_MPMS_FORK; do
+			if [ "$flag" == "$mflag" ]; then
+				line=${line/ threads / -threads }
+				break
+			fi
+		done
+		FLAG_COMBINATIONS+="$line"
+		FLAG_COMBINATIONS+=$'\n'
+	done
+
 	# add a single line for each flag
 	for flag in $MY_FLAGS; do
 		line=" ${flagsmin/ -$flag/ $flag}"
 		# append critical flags
 		line+=" ${CRITICAL_FLAGS}"
+
+		# thread MPMS
+		for mflag in $IUSE_MPMS_THREAD; do
+			if [ "$flag" == "$mflag" ]; then
+				line=${line/ threads / -threads }
+				break
+			fi
+		done
 
 		# handle dav flags
 		local dflag=dav
@@ -130,4 +168,9 @@ pkg_test_ssl()
 	if [ "`cat index.html`" != '<html><body><h1>It works!</h1></body></html>' ]; then
 		die "SSL index.html check fails"
 	fi
+}
+
+pkg_stop()
+{
+	test_atom "/etc/init.d/apache2 stop"
 }
