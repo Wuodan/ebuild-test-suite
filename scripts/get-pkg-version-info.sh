@@ -23,6 +23,8 @@ EIX=`echo "$EIX" | sed -r -n '1h;1!H;${;g;s/.*Available versions:\s+(.*)\s+Homep
 EIX=`echo "$EIX" | grep -vE '^[[:space:]]*$'`
 # remove leading things
 EIX=`echo "$EIX" | sed -r 's/^\s*\(?(~|\*\*)?\)?\**\s*//'`
+# remove leading [M] or {M}
+EIX=`echo "$EIX" | sed -r 's/\s*[[{]M[]}]\(?~?\)?\s*//'`
 
 # act according to mode
 case $MODE in
@@ -31,14 +33,14 @@ case $MODE in
 	# too much black magic in here
 	"versions")
 		# result are versions
-		# remove anything after first space
+		# remove anything after first space 
 		EIX=`echo "$EIX" | sed -r 's/\s+.*//'`
 		# remove trailing "!"
 		EIX=`echo "$EIX" | sed -r 's/\!+.*//'`
 		# remove trailing {tbz2} from binary package
 		EIX=`echo "$EIX" | sed -r 's/\{.*$//'`
-		# remove trailing [1]
-		EIX=`echo "$EIX" | sed -r 's/\[.*$//'`
+		# remove trailing [1] or (2)
+		EIX=`echo "$EIX" | sed -r 's/[[(].*$//'`
 		[ "$EIX" != '' ] || die "Parsing of versions failed!"
 		echo "$EIX"
 		exit 0
