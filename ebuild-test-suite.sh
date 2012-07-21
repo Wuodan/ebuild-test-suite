@@ -97,9 +97,11 @@ init()
 		$subscript comment-out $cat/$pkg || die "Failure in: $subscript comment-out $catpkg"
 	done
 	# depclean all packages
+	echo "Depcleaning tested packages, then depcleaning system ..."
 	emerge -q --depclean ${allPkgs} || die "initial depclean failed"
 	# depclean system
 	emerge -q --depclean || die "initial depclean system failed"
+	echo "Running initial revdep-rebuild ..."
 	revdep-rebuild -q || die "initial revdep-rebuild failed"
 }
 
@@ -137,9 +139,11 @@ run_version_depclean()
 	# TODO: the above fails with my ebuild
 	# either I get the DEPEND/RDEPEND wrong or it is as it is
 	# workaround: depclean all tested packages
+	echo "Depcleaning tested packages, then depcleaning system ..."
 	emerge -q --depclean ${allPkgs} || die "depclean failed"
 	# depclean system
 	emerge -q --depclean || die "depclean system failed"
+	echo "Running revdep-rebuild after depclean ..."
 	revdep-rebuild -q || die "revdep-rebuild failed"
 }
 
