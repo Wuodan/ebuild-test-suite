@@ -16,6 +16,8 @@ IUSE_MPMS_THREAD="event worker"
 # reminder => activate static test below once fixed
 DISABLED_FLAGS=" apache2_mpms_itk apache2_mpms_peruser apache2_modules_proxy_scgi static"
 
+DOC_FLAGS=" alias negotiation setenvif"
+SSL_FLAGS=" socache_shmcb"
 DAV_FLAGS=" dav_fs dav_lock"
 FILTER_FLAGS=" deflate ext_filter substitute"
 CACHE_FLAGS=" cache_disk file_cache"
@@ -107,6 +109,20 @@ pkg_flag_combinations()
 				break
 			fi
 		done
+
+		# doc depends on these modules
+		if [ $flag == doc ]; then
+			for mflag in $DOC_FLAGS; do
+				line=${line/ -apache2_modules_$mflag / apache2_modules_$mflag }
+			done
+		fi
+
+		# ssl depends on these modules
+		if [ $flag == ssl ]; then
+			for mflag in $SSLFLAGS; do
+				line=${line/ -apache2_modules_$mflag / apache2_modules_$mflag }
+			done
+		fi
 
 		# handle dav flags
 		local dflag=dav
