@@ -2,7 +2,8 @@
 # Author: Stefan Kuhn <woudan@hispeed.ch>
 
 MY_FLAGS=
-MODULE_CRITICAL=" access_compat authn_core authz_core authz_host dir mime socache_shmcb unixd"
+# tocheck: access_compat socache_shmcb
+MODULE_CRITICAL=" authn_core authz_core authz_host dir mime unixd"
 CRITICAL_FLAGS=${MODULE_CRITICAL// / apache2_modules_}
 IUSE_MPMS_FORK="prefork" # disabled itk peruser
 IUSE_MPMS_THREAD="event worker"
@@ -12,13 +13,13 @@ IUSE_MPMS_THREAD="event worker"
 # itk : configure: error: MPM itk is not supported on this platform. (amd64)
 # peruser : configure: error: MPM peruser is not supported on this platform. (amd64)
 # proxy_scgi: Syntax error on line 145 of /etc/apache2/httpd.conf: Cannot load /usr/lib64/apache2/modules/mod_proxy_scgi.so into server: /usr/lib64/apache2/modules/mod_proxy_scgi.so: undefined symbol: ap_proxy_release_connection
-# static: AH00526: Syntax error on line 67 of /etc/apache2/httpd.conf: Invalid command 'User', perhaps misspelled or defined by a module not included in the server configuration
+# static: AH00526: Syntax error on line 67 of /etc/apache2/httpd.conf: Invalid command 'User', perhaps misspelled or defined by a module not included in the server configuration. Plus hangs when max flags are activated.
 # reminder => activate static test below once fixed
 DISABLED_FLAGS=" apache2_mpms_itk apache2_mpms_peruser apache2_modules_proxy_scgi static"
 
 DAV_FLAGS=" dav_fs dav_lock"
 FILTER_FLAGS=" deflate ext_filter substitute"
-CACHE_FLAGS=" disk_cache file_cache"
+CACHE_FLAGS=" cache_disk file_cache"
 LOG_CONFIG_FLAGS=" log_forensic logio"
 MIME_FLAGS=" mime_magic"
 PROXY_FLAGS=" proxy_ajp proxy_balancer proxy_connect proxy_ftp proxy_http proxy_scgi"
@@ -75,12 +76,13 @@ pkg_flag_combinations()
 					break
 				fi
 			done
+			# reminder => enable once static is fixed
 			# toggle static flag
-			if [ $static -eq 0 ]; then
-				line+=" -static"
-			else
-				line+=" static"
-			fi
+			# if [ $static -eq 0 ]; then
+				# line+=" -static"
+			# else
+				# line+=" static"
+			# fi
 			FLAG_COMBINATIONS+="$line"
 			FLAG_COMBINATIONS+=$'\n'
 		done
