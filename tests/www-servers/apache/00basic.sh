@@ -2,7 +2,6 @@
 # Author: Stefan Kuhn <woudan@hispeed.ch>
 
 MY_FLAGS=
-# tocheck: access_compat socache_shmcb
 MODULE_CRITICAL=" authn_core authz_core authz_host dir mime unixd"
 CRITICAL_FLAGS=${MODULE_CRITICAL// / apache2_modules_}
 IUSE_MPMS_FORK="prefork" # disabled itk peruser
@@ -54,6 +53,13 @@ pkg_flag_combinations()
 	# append negated disabled flags to critical
 	CRITICAL_FLAGS+=" ${DISABLED_FLAGS// / -} "
 
+	# one line with minimum active flags
+	line=" ${flagsmin}"
+	# append critical flags
+	line+=" ${CRITICAL_FLAGS}"
+	FLAG_COMBINATIONS+="$line"
+	FLAG_COMBINATIONS+=$'\n'
+
 	# one line per MPMS with maximum active flags
 	# once with static flag and once without
 	local static=
@@ -88,13 +94,6 @@ pkg_flag_combinations()
 		done
 	done
 
-	# one line with minimum active flags
-	line=" ${flagsmin}"
-	# append critical flags
-	line+=" ${CRITICAL_FLAGS}"
-	FLAG_COMBINATIONS+="$line"
-	FLAG_COMBINATIONS+=$'\n'
-
 	# add a single line for each flag
 	for flag in $MY_FLAGS; do
 		line=" ${flagsmin/ -$flag/ $flag}"
@@ -104,7 +103,7 @@ pkg_flag_combinations()
 		# thread MPMS
 		for mflag in $IUSE_MPMS_THREAD; do
 			if [ "$flag" == "$mflag" ]; then
-				line=${line/ threads / -threads }
+				line=${line/ -threads / threads }
 				break
 			fi
 		done
