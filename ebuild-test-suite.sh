@@ -94,7 +94,9 @@ init()
 	for catpkg in $allPkgs; do
 		# echo $catpkg
 		# comment out in package.use
-		$subscript comment-out $cat/$pkg || die "Failure in: $subscript comment-out $catpkg"
+		# $subscript comment-out $cat/$pkg || die "Failure in: $subscript comment-out $catpkg"
+		# above does not work, try this ...
+		$subscript remove $cat/$pkg || die "Failure in: $subscript remove $catpkg"
 	done
 	# depclean all packages
 	echo "Depcleaning tested packages, then depcleaning system ..."

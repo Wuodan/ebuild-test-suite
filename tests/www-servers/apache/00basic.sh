@@ -119,7 +119,7 @@ pkg_flag_combinations()
 
 		# ssl depends on these modules
 		if [ $flag == ssl ]; then
-			for mflag in $SSLFLAGS; do
+			for mflag in $SSL_FLAGS; do
 				line=${line/ -apache2_modules_$mflag / apache2_modules_$mflag }
 			done
 		fi
