@@ -104,7 +104,7 @@ pkg_flag_combinations()
 
 		# thread MPMS
 		for mflag in $IUSE_MPMS_THREAD; do
-			if [ "$flag" == "$mflag" ]; then
+			if [ "$flag" == "apache2_mpms_$mflag" ]; then
 				line=${line/ -threads / threads }
 				break
 			fi
